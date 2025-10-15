@@ -1,5 +1,5 @@
 <?php
-// endpoint_server.php
+// index.php
 // Server eksternal yang menangani permintaan API dari skrip client (Proxy Server).
 
 error_reporting(0);
@@ -774,3 +774,4 @@ JSON;
 HTML;
 }
 ?>
+
