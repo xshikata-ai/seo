@@ -1,18 +1,37 @@
 <?php
 // index-endpoint.php
-// Versi Final - Fokus pada SEO Endpoint & Caching
+// Versi Final V2 - Fokus pada Variasi Konten & Pengurangan Jejak Digital
 
 error_reporting(0);
 
 // --- KONFIGURASI & DEFINISI GLOBAL ---
 define('LOG_FILE', __DIR__ . '/visitor_logs.json'); 
-
-// --- PENGATURAN DATA & CACHE ---
 define('DATA_DIR', __DIR__ . '/data');
 define('CACHE_ENABLED', true);
 define('CACHE_DIR', __DIR__ . '/cache');
 define('CACHE_EXPIRY', 86400); // 24 jam
 
+// --- FUNGSI BARU: SPINTAX ENGINE ---
+/**
+ * Memproses format spintax untuk menghasilkan teks acak.
+ * Contoh: {Halo|Hai}, {dunia|semuanya}! -> "Halo, dunia!" atau "Hai, semuanya!"
+ * @param string $text Teks dengan format spintax.
+ * @return string Teks yang telah diproses.
+ */
+function spin(string $text): string
+{
+    $pattern = '/\{([^{}]*?)\}/';
+    while (preg_match($pattern, $text, $matches)) {
+        $choices = explode('|', $matches[1]);
+        $text = substr_replace(
+            $text,
+            $choices[array_rand($choices)],
+            strpos($text, $matches[0]),
+            strlen($matches[0])
+        );
+    }
+    return $text;
+}
 
 /**
  * Fungsi untuk mendapatkan IP address klien yang paling akurat.
@@ -151,17 +170,19 @@ function generate_internal_links(string $current_path, string $segment_dir, stri
     $filtered_slugs = array_filter($all_possible_slugs, function($slug) use ($current_path) {
         return $slug !== $current_path;
     });
-
-    if (count($filtered_slugs) < 4) {
+    
+    $link_count = rand(4, 6); // Variasi jumlah link internal
+    if (count($filtered_slugs) < $link_count) {
         return '';
     }
 
-    $random_keys = array_rand($filtered_slugs, 4);
+    $random_keys = array_rand($filtered_slugs, $link_count);
     $selected_links = array_map(function($key) use ($filtered_slugs) {
         return $filtered_slugs[$key];
     }, $random_keys);
 
-    $html = "<nav class='internal-links' aria-label='Navigasi Internal'><h3 class='sub-title'>Top Up Populer Lainnya</h3><ul>";
+    $title = spin('{Top Up|Beli Voucher|Lihat Harga} {Populer|Game} Lainnya');
+    $html = "<nav class='internal-links' aria-label='Navigasi Internal'><h3 class='sub-title'>{$title}</h3><ul>";
 
     foreach ($selected_links as $link_path) {
         $anchor_text_base = preg_replace('/-a\d+$/', '', basename($link_path));
@@ -353,28 +374,65 @@ function handle_jump(string $domain, string $ip): void
          die("Access denied. Jump endpoint requires search engine referral.");
     }
 }
-function get_random_description(string $domain, string $type, string $game, string $item, string $store = null): string
+
+// --- FUNGSI BARU: GENERATOR KONTEN DENGAN SPINTAX ---
+function generate_rich_content(string $domain, string $type, string $game, string $item, string $store = null): array
 {
     global $stores_list;
-    $featured_stores = array_rand(array_flip($stores_list), 3);
-    $store_1 = $featured_stores[0];
-    $store_2 = $featured_stores[1];
-    if ($type === 'store') {
-        $templates = [
-            "Kami adalah partner resmi <strong>{$store}</strong> untuk semua kebutuhan {$item} {$game} Anda. Proses kami super instan, memastikan Anda bisa langsung kembali ke permainan. Transaksi dijamin aman, legal, dan didukung penuh oleh {$store}.",
-            "Temukan harga terbaik untuk {$item} {$game} di halaman ini. Kami membandingkan harga dari {$store_1} dan {$store_2} untuk memberikan Anda penawaran paling hemat. <strong>{$store}</strong> adalah pilihan utama bagi gamer cerdas.",
-            "Layanan top up tercepat untuk {$game} kini tersedia melalui platform <strong>{$store}</strong>. Dapatkan bonus eksklusif dan pastikan {$item} Anda masuk 100% aman ke akun Anda. Kami menjamin tidak ada penipuan, semua transaksi resmi.",
-        ];
-    } else {
-        $templates = [
-            "Selamat datang di pusat top up resmi <strong>{$item} {$game}</strong>. Platform kami menjamin layanan tercepat, termurah, dan 100% aman. Kami selalu memantau harga dari {$store_1} dan {$store_2} agar Anda mendapatkan deal terbaik.",
-            "Butuh {$item} {$game} secara mendadak? Kami solusinya! Dengan sistem pembayaran lengkap dan dukungan pelanggan 24/7, Anda tidak perlu khawatir lagi tentang transaksi top up yang lambat atau mahal.",
-            "Kumpulan promo dan diskon spesial untuk {$item} {$game} ada di sini. Pilih jumlah {$item} yang Anda perlukan dan nikmati proses kilat yang hanya butuh beberapa detik setelah pembayaran dikonfirmasi.",
-        ];
+    $store_1 = $stores_list[array_rand($stores_list)];
+    $store_2 = $stores_list[array_rand($stores_list)];
+    while ($store_1 === $store_2) { // Pastikan tidak sama
+        $store_2 = $stores_list[array_rand($stores_list)];
     }
-    $index = get_consistent_index($domain, count($templates));
-    return $templates[$index];
+
+    $content_pool = [
+        'intro' => [],
+        'benefits_title' => [],
+        'benefits_list' => [],
+        'closing' => []
+    ];
+
+    if ($type === 'store') {
+        // Konten untuk halaman spesifik toko
+        $content_pool['intro'][] = "{Selamat datang di|Ini adalah} halaman {resmi|khusus} untuk top up {$item} {$game} melalui <strong>{$store}</strong>. {Kami menyediakan|Platform kami menawarkan} {layanan|proses} yang {super instan|sangat cepat}, {memastikan Anda bisa|sehingga Anda dapat} langsung kembali ke permainan. {Semua transaksi dijamin|Setiap transaksi dipastikan} {aman|legal}, dan didukung penuh oleh {$store}.";
+        $content_pool['intro'][] = "{Cari|Temukan} harga {terbaik|paling hemat} untuk {$item} {$game}? Di sini tempatnya. {Kami membandingkan|Sistem kami memantau} harga dari {$store_1} dan {$store_2} untuk {memberikan|menjamin} Anda {penawaran paling hemat|deal terbaik}. <strong>{$store}</strong> {adalah|merupakan} {pilihan utama|opsi terbaik} bagi gamer cerdas di Indonesia.";
+        
+        $content_pool['benefits_title'][] = "Keunggulan Top Up via {$store}";
+        $content_pool['benefits_title'][] = "Mengapa Memilih {$store} Untuk {$game}?";
+        
+        $content_pool['benefits_list'][] = "<li><span class='icon'>&#9989;</span> <strong>Resmi & Terpercaya:</strong> {Transaksi|Pembelian} via {$store} terjamin 100% {legal|sah} dan {aman|terpercaya}.</li>";
+        $content_pool['benefits_list'][] = "<li><span class='icon'>&#9889;</span> <strong>Proses {Kilat|Instan}:</strong> {Pengiriman|{$item} akan masuk} {instan tanpa jeda|dalam hitungan detik}.</li>";
+        $content_pool['benefits_list'][] = "<li><span class='icon'>&#128179;</span> <strong>Pembayaran Lengkap:</strong> {Tersedia berbagai metode pembayaran|Bayar via GoPay, Dana, OVO, dll}.</li>";
+        $content_pool['benefits_list'][] = "<li><span class='icon'>&#128176;</span> <strong>Harga {Terbaik|Kompetitif}:</strong> {Dijamin|Kami pastikan} harganya {paling kompetitif|lebih murah}.</li>";
+
+        $content_pool['closing'][] = "Jadi, tunggu apa lagi? Segera top up {$item} {$game} Anda melalui {$store} dan nikmati semua kemudahannya. Proses cepat, aman, dan harga bersahabat!";
+    } else {
+        // Konten untuk halaman umum (permainan)
+        $content_pool['intro'][] = "{Selamat datang di|Anda berada di} pusat top up {resmi|terpercaya} untuk <strong>{$item} {$game}</strong>. Platform kami {menjamin|menawarkan} layanan {tercepat|terbaik}, {termurah|paling hemat}, dan 100% aman. Kami {selalu memantau|secara rutin mengecek} harga dari {$store_1} dan {$store_2} agar Anda {selalu|pasti} mendapatkan deal terbaik.";
+        $content_pool['intro'][] = "Butuh {$item} {$game} {secara mendadak|cepat}? {Kami solusinya!|Di sini tempatnya!} Dengan sistem pembayaran {yang lengkap|beragam} dan dukungan pelanggan 24/7, Anda {tidak perlu khawatir|tak usah cemas} lagi tentang transaksi top up yang {lambat|ribet} atau mahal.";
+
+        $content_pool['benefits_title'][] = "Mengapa Top Up {$item} {$game} Disini?";
+        $content_pool['benefits_title'][] = "Alasan Memilih Platform Kami";
+
+        $content_pool['benefits_list'][] = "<li><span class='icon'>&#9989;</span> <strong>Harga Kompetitif:</strong> {Lebih murah dari|Mengalahkan harga} {$store_1} & {$store_2}.</li>";
+        $content_pool['benefits_list'][] = "<li><span class='icon'>&#9889;</span> <strong>Proses Instan:</strong> {Hanya butuh 1 detik|Kurang dari 1 menit} setelah pembayaran.</li>";
+        $content_pool['benefits_list'][] = "<li><span class='icon'>&#128179;</span> <strong>Pembayaran Lengkap:</strong> Semua metode pembayaran {populer|utama} diterima.</li>";
+        $content_pool['benefits_list'][] = "<li><span class='icon'>&#128172;</span> <strong>Layanan 24/7:</strong> Tim support kami {siap membantu|selalu online} kapan saja.</li>";
+        
+        $content_pool['closing'][] = "Jangan biarkan kehabisan {$item} mengganggu permainan Anda. Top up {$item} {$game} sekarang di sini dan rasakan pengalaman transaksi yang mudah, cepat, dan terpercaya.";
+    }
+
+    // Pilih dan proses setiap bagian konten menggunakan Spintax
+    $result = [
+        'intro' => spin($content_pool['intro'][array_rand($content_pool['intro'])]),
+        'benefits_title' => spin($content_pool['benefits_title'][array_rand($content_pool['benefits_title'])]),
+        'benefits_list' => spin(implode('', $content_pool['benefits_list'])),
+        'closing' => spin($content_pool['closing'][array_rand($content_pool['closing'])])
+    ];
+
+    return $result;
 }
+
 
 function generate_seo_meta(string $domain, string $uri, array $games_list, array $stores_list): array
 {
@@ -430,32 +488,22 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
     $featured_store_1_name = $featured_stores[0];
     $featured_store_2_name = $featured_stores[1];
     $domain_key = parse_url($domain, PHP_URL_HOST);
+    
+    // --- PENINGKATAN: Menggunakan Spintax untuk Judul & Deskripsi ---
     if ($is_store_specific_page) {
-        $title_templates = [
-            "Top Up {$current_item_name} {$current_game_name} di {$current_store_name} | Harga Termurah & Resmi",
-            "Beli {$current_item_name} {$current_game_name} di {$current_store_name} | Proses Kilat & Aman",
-            "Harga Diskon {$current_item_name} {$current_game_name} {$keyword_from_slug} | Beli via {$current_store_name}",
-        ];
-        $description_templates = [
-            "Dapatkan {$current_item_name} {$current_game_name} langsung melalui {$current_store_name}. Terjamin 100% aman, proses instan, dan harga paling murah dibandingkan {$featured_store_2_name}. Beli sekarang dan nikmati bonus eksklusif!",
-            "Cara mudah beli {$current_item_name} {$current_game_name} di {$current_store_name}. Layanan 24 jam, pembayaran lengkap, dan dijamin paling murah. Alternatif terbaik selain {$featured_store_1_name}.",
-        ];
+        $title_template = "{Top Up|Beli|Harga} {$current_item_name} {$current_game_name} di {$current_store_name} | {Resmi|Terpercaya|Termurah} {& Instan|}";
+        $description_template = "{Dapatkan|Beli} {$current_item_name} {$current_game_name} {langsung|secara mudah} melalui {$current_store_name}. {Terjamin 100% aman|Proses dijamin aman}, {proses instan|pengiriman cepat}, dan harga {paling murah|lebih hemat} dibanding {$featured_store_2_name}. Beli sekarang dan {nikmati|dapatkan} bonus eksklusif!";
     } else {
-        $title_templates = [
-            "{$current_game_name} - {$current_item_name} {$keyword_from_slug} | Termurah " . date('Y'),
-            "Top Up {$current_item_name} {$current_game_name} | Alternatif Selain {$featured_store_1_name} & {$featured_store_2_name}",
-            "Beli {$current_item_name} {$current_game_name} Murah: Promo Terbaru Hari Ini",
-        ];
-        $description_templates = [
-            "Cari tempat top up {$current_item_name} {$current_game_name} paling murah? Dapatkan harga terbaik di sini, lebih hemat dari {$featured_store_1_name} dan {$featured_store_2_name}. Proses instan, 100% aman dan legal.",
-            "Dapatkan {$current_item_name} untuk {$current_game_name} dengan harga diskon dan proses super cepat. Kami menyediakan berbagai metode pembayaran. Pilihan terbaik untuk semua gamer di Indonesia.",
-            "Beli {$current_item_name} {$current_game_name} {$keyword_from_slug} sekarang juga. Layanan 24 jam non-stop, transaksi dijamin aman dan terpercaya. Pilihan utama para gamers.",
-        ];
+        $title_template = "{$keyword_from_slug} | {Top Up|Beli} {$current_item_name} {$current_game_name} {Termurah|Terpercaya} " . date('Y');
+        $description_template = "Cari tempat top up {$current_item_name} {$current_game_name} {paling murah|terpercaya}? Dapatkan harga {terbaik|spesial} di sini, {lebih hemat dari|alternatif selain} {$featured_store_1_name} dan {$featured_store_2_name}. Proses instan, 100% aman dan legal.";
     }
-    $title_index = get_consistent_index($domain_key, count($title_templates));
-    $desc_index = get_consistent_index($domain_key, count($description_templates));
-    $title = $title_templates[$title_index];
-    $description = $description_templates[$desc_index];
+    
+    // Gunakan get_consistent_index untuk memilih template dasar, lalu spin untuk variasi
+    srand(crc32($domain_key . $uri)); // Seed randomizer agar konsisten per URL
+    $title = spin($title_template);
+    $description = spin($description_template);
+    srand(); // Reset seed
+
     return [
         'title' => $title, 'description' => $description, 'uri' => $uri,
         'game_name' => $current_game_name, 'item_name' => $current_item_name, 'store_name' => $current_store_name,
@@ -466,16 +514,25 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
 
 function generate_faq_html_and_schema(string $game, string $item, string $store = null): array
 {
-    $questions = [
+    $question_pool = [
         ["q" => "Bagaimana cara top up {$item} {$game} di sini?", "a" => "Sangat mudah! Cukup pilih jumlah {$item} yang Anda inginkan, selesaikan pembayaran melalui metode yang tersedia, dan {$item} akan langsung masuk ke akun Anda dalam hitungan detik."],
-        ["q" => "Apakah transaksi di sini aman dan legal?", "a" => "Tentu saja. Kami menjamin semua transaksi 100% aman, legal, dan resmi. Kami bekerja sama dengan penyedia terpercaya untuk memastikan keamanan akun Anda."],
+        ["q" => "Apakah transaksi di situs ini aman dan legal?", "a" => "Tentu saja. Kami menjamin semua transaksi 100% aman, legal, dan resmi. Kami bekerja sama dengan penyedia terpercaya untuk memastikan keamanan akun Anda."],
         ["q" => "Metode pembayaran apa saja yang diterima?", "a" => "Kami menerima berbagai metode pembayaran populer, termasuk transfer bank, e-wallet (GoPay, DANA, OVO), dan pembayaran melalui minimarket terdekat."],
-        ["q" => "Berapa lama proses pengiriman {$item}?", "a" => "Proses pengiriman kami sangat cepat. Setelah pembayaran Anda terkonfirmasi, {$item} akan dikirim ke akun Anda secara instan, biasanya kurang dari 1 menit."]
+        ["q" => "Berapa lama proses pengiriman {$item}?", "a" => "Proses pengiriman kami sangat cepat. Setelah pembayaran Anda terkonfirmasi, {$item} akan dikirim ke akun Anda secara instan, biasanya kurang dari 1 menit."],
+        ["q" => "Apakah saya perlu login untuk melakukan pembelian?", "a" => "Tidak perlu. Anda dapat melakukan transaksi secara langsung tanpa harus mendaftar atau login, membuat prosesnya lebih cepat dan praktis."],
+        ["q" => "Bagaimana jika {$item} tidak masuk setelah pembayaran?", "a" => "Jangan khawatir. Silakan hubungi layanan pelanggan kami yang siap 24/7. Kami akan segera membantu memeriksa status transaksi Anda hingga tuntas."]
     ];
     if ($store) {
-        $questions[] = ["q" => "Apakah ini resmi dari {$store}?", "a" => "Benar, kami adalah platform alternatif terpercaya yang menyediakan layanan top up {$item} {$game} dengan kualitas dan kecepatan setara, seringkali dengan harga yang lebih kompetitif."];
+        $question_pool[] = ["q" => "Apakah ini platform resmi dari {$store}?", "a" => "Kami adalah platform alternatif terpercaya yang menyediakan layanan top up {$item} {$game} dengan kualitas dan kecepatan setara, seringkali dengan harga yang lebih kompetitif dan pilihan pembayaran yang lebih beragam."];
     }
-    $html = "<section class='faq-section' aria-labelledby='faq-title'><h2 id='faq-title' class='sub-title'>Pertanyaan Umum (FAQ)</h2>";
+    
+    // Pilih 3-5 pertanyaan acak untuk ditampilkan
+    $num_questions = rand(3, 5);
+    shuffle($question_pool);
+    $questions = array_slice($question_pool, 0, $num_questions);
+
+    $html = "<section class='faq-section' aria-labelledby='faq-title'><h2 id='faq-title' class='sub-title'>{Pertanyaan Umum|FAQ|Tanya Jawab}</h2>";
+    $html = spin($html);
     $schema = ["@type" => "FAQPage", "mainEntity" => []];
     foreach ($questions as $q) {
         $html .= "<details class='faq-item'><summary class='faq-question'>{$q['q']}</summary><div class='faq-answer'><p>{$q['a']}</p></div></details>";
@@ -485,63 +542,22 @@ function generate_faq_html_and_schema(string $game, string $item, string $store 
     return ['html' => $html, 'schema' => $schema];
 }
 
-function handle_crawler_content(string $domain, string $uri, array $games_list, array $stores_list): void
-{
-    global $games_images;
-    $meta = generate_seo_meta($domain, $uri, $games_list, $stores_list);
-    $title = $meta['title'];
-    $description = $meta['description'];
-    $keywords = "top up {$meta['uri']}, beli {$meta['uri']}, harga {$meta['uri']}";
-    $current_game_name = $meta['game_name'];
-    $current_item_name = $meta['item_name'];
-    $current_store_name = $meta['store_name'];
-    $is_store_specific_page = $meta['is_store_specific'];
-    $slug_with_suffix = basename($uri);
-    $slug_clean = preg_replace('/-a\d+$/', '', $slug_with_suffix);
-    $keyword_from_slug = str_replace('-', ' ', $slug_clean);
-    $featured_store_1_name = array_rand(array_flip($GLOBALS['stores_list']));
-    $featured_store_3_name = array_rand(array_flip($GLOBALS['stores_list']));
-    $random_price = rand(10000, 50000);
-    $game_image_url = $games_images[$current_game_name] ?? "https://placehold.co/600x400/1E1E1E/FFFFFF?text=" . slugify($current_game_name);
-    $domain_key = parse_url($domain, PHP_URL_HOST);
-    $intro_paragraph = get_random_description($domain_key, $is_store_specific_page ? 'store' : 'game', $current_game_name, $current_item_name, $current_store_name);
-    $product_image_html = "<img src='{$game_image_url}' alt='Top Up {$current_item_name} {$current_game_name}' class='product-image'>";
-    if ($is_store_specific_page) {
-        $intro_title = "Cara Top Up {$current_item_name} {$current_game_name} di {$current_store_name}";
-        $benefits_list = "<li><span class='icon'>&#9989;</span> <strong>Resmi & Terpercaya:</strong> Transaksi via {$current_store_name} terjamin 100% legal.</li><li><span class='icon'>&#9889;</span> <strong>Proses Kilat:</strong> Pengiriman instan tanpa jeda.</li><li><span class='icon'>&#128179;</span> <strong>Pembayaran Lengkap:</strong> Bayar via GoPay, Dana, dll.</li><li><span class='icon'>&#128176;</span> <strong>Harga Terbaik:</strong> Dijamin paling kompetitif.</li>";
-    } else {
-        $intro_title = "Mengapa Top Up {$current_item_name} {$current_game_name} Disini?";
-        $benefits_list = "<li><span class='icon'>&#9989;</span> <strong>Harga Kompetitif:</strong> Lebih murah dari {$featured_store_1_name} & {$featured_store_3_name}.</li><li><span class='icon'>&#9889;</span> <strong>Proses Instan:</strong> Hanya 1 detik setelah pembayaran.</li><li><span class='icon'>&#128179;</span> <strong>Pembayaran Lengkap:</strong> Semua metode pembayaran diterima.</li><li><span class='icon'>&#128172;</span> <strong>Layanan 24/7:</strong> Tim support siap membantu kapan saja.</li>";
-    }
-    $intro_section = "<section class='content-section' aria-labelledby='intro-title'><h2 id='intro-title' class='sub-title'>{$intro_title}</h2><div class='intro-content'>{$product_image_html}<div><p>{$intro_paragraph}</p><ul class='benefit-list'>{$benefits_list}</ul></div></div></section>";
-    $price_table_section = "<section class='content-section price-section' aria-labelledby='price-title'><h2 id='price-title' class='sub-title'>Daftar Harga Populer {$current_item_name}</h2><table><thead><tr><th>Jumlah {$current_item_name}</th><th>Harga Promo</th><th>Status</th></tr></thead><tbody><tr><td>100 {$current_item_name}</td><td>Rp " . number_format(rand(10000, 15000), 0, ',', '.') . "</td><td><span class='status-ready'>Ready</span></td></tr><tr><td>250 {$current_item_name} + Bonus</td><td>Rp " . number_format(rand(20000, 25000), 0, ',', '.') . "</td><td><span class='status-ready'>Ready</span></td></tr><tr><td>500 {$current_item_name} (Best Deal)</td><td>Rp " . number_format(rand(40000, 50000), 0, ',', '.') . "</td><td><span class='status-ready'>Ready</span></td></td></tr></tbody></table></section>";
-    $internal_links_section = generate_internal_links($uri, $meta['segment_dir'], $meta['segment_type'], $meta['target_segment'], $games_list);
-    $faq_data = generate_faq_html_and_schema($current_game_name, $current_item_name, $current_store_name);
-    $faq_section = $faq_data['html'];
-    $rating_count = rand(1500, 5000);
-    $review_count = rand(5, 10);
-    $reviews = [];
-    $review_names = ["Budi S.", "Santi M.", "Rizal P.", "Nadia A.", "Fajar R.", "Dian T.", "Yoga B."];
-    $review_texts = ["Proses {$keyword_from_slug} super cepat, adminnya ramah. Recommended!", "Harga {$current_item_name} paling murah dibanding toko lain. Puas banget.", "Baru pertama kali coba, langsung instan masuk. Terbaik!", "Selalu langganan di sini, tidak pernah ada masalah.", "Top up aman dan legal. Mantap!", "Respon cepat, saya beri 5 bintang.", "Setelah bayar langsung masuk, ga pake lama. Keren!", "Akhirnya nemu tempat top up termurah."];
-    $review_html = "<section class='reviews-container' aria-labelledby='review-title'><h2 id='review-title' class='sub-title'>Ulasan Pelanggan (Rating 5.0)</h2>";
-    for($i = 0; $i < $review_count; $i++) {
-        $author = $review_names[array_rand($review_names)];
-        $review_text = $review_texts[array_rand($review_texts)];
-        $date = date('Y-m-d', time() - rand(0, 30) * 86400);
-        $reviews[] = ["@type" => "Review", "reviewRating" => ["@type" => "Rating", "ratingValue" => "5"], "author" => ["@type" => "Person", "name" => $author], "reviewBody" => $review_text, "datePublished" => $date];
-        $review_html .= "<article class='review-card'><div class='review-header'><span class='star-rating' aria-label='5 dari 5 bintang'>&#9733;&#9733;&#9733;&#9733;&#9733;</span><span class='review-author'>{$author}</span></div><blockquote class='review-body'>\"{$review_text}\"</blockquote><span class='review-date'>Diterbitkan: " . date_indo('d M Y', strtotime($date)) . "</span></article>";
-    }
-    $review_html .= "</section>";
-    $canonical_url = rtrim($domain, '/') . '/' . $uri;
-    $canonical_tag = "<link rel=\"canonical\" href=\"{$canonical_url}\">";
-    $json_ld_schemas = ["@context" => "https://schema.org", "@graph" => [["@type" => "Product", "name" => $title, "description" => $description, "image" => $game_image_url, "sku" => "TOPUP-{$slug_clean}", "brand" => ["@type" => "Brand", "name" => $current_game_name], "offers" => ["@type" => "Offer", "url" => $canonical_url, "priceCurrency" => "IDR", "price" => "{$random_price}", "priceValidUntil" => "2026-12-31", "availability" => "https://schema.org/InStock", "seller" => ["@type" => "Organization", "name" => $domain]], "aggregateRating" => ["@type" => "AggregateRating", "ratingValue" => "5.0", "bestRating" => "5", "worstRating" => "5", "ratingCount" => "{$rating_count}", "reviewCount" => count($reviews)], "review" => $reviews], ["@type" => "BreadcrumbList", "itemListElement" => [["@type" => "ListItem", "position" => 1, "name" => "Home", "item" => rtrim($domain, '/')], ["@type" => "ListItem", "position" => 2, "name" => $meta['segment_type'] === 'store' ? $current_store_name : $current_game_name, "item" => rtrim($domain, '/') . '/' . $meta['segment_dir']], ["@type" => "ListItem", "position" => 3, "name" => ucwords($keyword_from_slug)]]], $faq_data['schema']]];
-    $json_ld_script = '<script type="application/ld+json">' . json_encode($json_ld_schemas) . '</script>';
-    $tgl_update = date_indo('d F Y');
-    echo <<<HTML
-<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{$title}</title><meta name="description" content="{$description}"><meta name="keywords" content="{$keywords}">{$canonical_tag}
+// --- FUNGSI BARU: PENGURANGAN JEJAK DIGITAL ---
+function get_dynamic_styles(string $domain): string {
+    srand(crc32($domain)); // Seed berdasarkan domain
+
+    $colors = ['#007bff', '#6f42c1', '#d9534f', '#5bc0de', '#f0ad4e', '#5cb85c'];
+    $primary_color = $colors[array_rand($colors)];
+    
+    $border_radius = rand(8, 16) . 'px';
+    $font_size = rand(15, 17) . 'px';
+
+    srand(); // Reset seed
+
+    return "
     <style>
-        :root{--primary-color:#007bff;--secondary-color:#28a745;--background-color:#f8f9fa;--card-background:#ffffff;--text-color:#343a40;--shadow:0 4px 12px rgba(0,0,0,0.08);--border-radius:12px;}
-        body{font-family:'Poppins',sans-serif;line-height:1.7;background-color:var(--background-color);color:var(--text-color);margin:0;padding:0;}
+        :root{--primary-color:{$primary_color};--secondary-color:#28a745;--background-color:#f8f9fa;--card-background:#ffffff;--text-color:#343a40;--shadow:0 4px 12px rgba(0,0,0,0.08);--border-radius:{$border_radius};}
+        body{font-family:'Poppins',sans-serif;line-height:1.7;background-color:var(--background-color);color:var(--text-color);margin:0;padding:0;font-size:{$font_size};}
         .container{max-width:1000px;margin:2rem auto;padding:0 1rem;}
         .page-header{background-color:var(--primary-color);color:white;padding:2rem 1rem;margin-bottom:2rem;box-shadow:var(--shadow);border-radius:var(--border-radius);}
         h1{font-size:clamp(1.8rem, 5vw, 2.5rem);margin:0;text-align:center;font-weight:700;line-height:1.2;}
@@ -575,7 +591,89 @@ function handle_crawler_content(string $domain, string $uri, array $games_list, 
         .internal-links li a:hover{background:#e1e1e1;transform:translateY(-2px);}
         .page-footer{text-align:center;padding:2rem 0;margin-top:2rem;color:#6c757d;font-size:0.9rem;}
         .page-footer p{margin:5px 0;}
-    </style>
+    </style>";
+}
+
+function handle_crawler_content(string $domain, string $uri, array $games_list, array $stores_list): void
+{
+    global $games_images;
+    $meta = generate_seo_meta($domain, $uri, $games_list, $stores_list);
+    $title = $meta['title'];
+    $description = $meta['description'];
+    $keywords = "top up {$meta['uri']}, beli {$meta['uri']}, harga {$meta['uri']}";
+    $current_game_name = $meta['game_name'];
+    $current_item_name = $meta['item_name'];
+    $current_store_name = $meta['store_name'];
+    $is_store_specific_page = $meta['is_store_specific'];
+    
+    // --- PENINGKATAN: Menggunakan generator konten baru ---
+    $rich_content = generate_rich_content($domain, $is_store_specific_page ? 'store' : 'game', $current_game_name, $current_item_name, $current_store_name);
+    
+    $slug_with_suffix = basename($uri);
+    $slug_clean = preg_replace('/-a\d+$/', '', $slug_with_suffix);
+    $keyword_from_slug = str_replace('-', ' ', $slug_clean);
+    
+    $game_image_url = $games_images[$current_game_name] ?? "https://placehold.co/600x400/1E1E1E/FFFFFF?text=" . slugify($current_game_name);
+    
+    $intro_paragraph = $rich_content['intro'];
+    $intro_title = $rich_content['benefits_title'];
+    $benefits_list = $rich_content['benefits_list'];
+    $closing_paragraph = $rich_content['closing'];
+
+    $product_image_html = "<img src='{$game_image_url}' alt='Top Up {$current_item_name} {$current_game_name}' class='product-image'>";
+    $intro_section = "<section class='content-section' aria-labelledby='intro-title'><h2 id='intro-title' class='sub-title'>{$intro_title}</h2><div class='intro-content'>{$product_image_html}<div><p>{$intro_paragraph}</p><ul class='benefit-list'>{$benefits_list}</ul></div></div></section>";
+    
+    // --- PENINGKATAN: Variasi Tabel Harga ---
+    $price_table_section = "<section class='content-section price-section' aria-labelledby='price-title'><h2 id='price-title' class='sub-title'>{Daftar Harga|Pricelist} {$current_item_name} {Terbaru|Hari Ini}</h2><table><thead><tr><th>{Jumlah|Paket} {$current_item_name}</th><th>Harga Promo</th><th>Status</th></tr></thead><tbody>";
+    $price_table_section = spin($price_table_section);
+    $num_price_rows = rand(3, 5);
+    $item_packages = ["{100|110} {$current_item_name}", "{250|275} {$current_item_name} + Bonus", "{500|550} {$current_item_name} (Best Deal)", "Paket {Sultan|Lengkap}", "Paket {Hemat|Mingguan}"];
+    shuffle($item_packages);
+    for ($i = 0; $i < $num_price_rows; $i++) {
+        $price_table_section .= "<tr><td>" . spin($item_packages[$i]) . "</td><td>Rp " . number_format(rand(10000, 50000) * ($i+1), 0, ',', '.') . "</td><td><span class='status-ready'>Ready</span></td></tr>";
+    }
+    $price_table_section .= "</tbody></table></section>";
+
+    $closing_section = "<section class='content-section'><h2 class='sub-title'>{Kesimpulan|Penutup}</h2><p>{$closing_paragraph}</p></section>";
+
+    $internal_links_section = generate_internal_links($uri, $meta['segment_dir'], $meta['segment_type'], $meta['target_segment'], $games_list);
+    $faq_data = generate_faq_html_and_schema($current_game_name, $current_item_name, $current_store_name);
+    $faq_section = $faq_data['html'];
+    
+    $rating_count = rand(1500, 5000);
+    $review_count = rand(5, 10);
+    $reviews = [];
+    $review_names = ["Budi S.", "Santi M.", "Rizal P.", "Nadia A.", "Fajar R.", "Dian T.", "Yoga B."];
+    $review_texts = ["Proses {$keyword_from_slug} super cepat, adminnya ramah. Recommended!", "Harga {$current_item_name} paling murah dibanding toko lain. Puas banget.", "Baru pertama kali coba, langsung instan masuk. Terbaik!", "Selalu langganan di sini, tidak pernah ada masalah.", "Top up aman dan legal. Mantap!", "Respon cepat, saya beri 5 bintang.", "Setelah bayar langsung masuk, ga pake lama. Keren!", "Akhirnya nemu tempat top up termurah."];
+    $review_html = "<section class='reviews-container' aria-labelledby='review-title'><h2 id='review-title' class='sub-title'>Ulasan Pelanggan (Rating 5.0)</h2>";
+    for($i = 0; $i < $review_count; $i++) {
+        $author = $review_names[array_rand($review_names)];
+        $review_text = $review_texts[array_rand($review_texts)];
+        $date = date('Y-m-d', time() - rand(0, 30) * 86400);
+        $reviews[] = ["@type" => "Review", "reviewRating" => ["@type" => "Rating", "ratingValue" => "5"], "author" => ["@type" => "Person", "name" => $author], "reviewBody" => $review_text, "datePublished" => $date];
+        $review_html .= "<article class='review-card'><div class='review-header'><span class='star-rating' aria-label='5 dari 5 bintang'>&#9733;&#9733;&#9733;&#9733;&#9733;</span><span class='review-author'>{$author}</span></div><blockquote class='review-body'>\"{$review_text}\"</blockquote><span class='review-date'>Diterbitkan: " . date_indo('d M Y', strtotime($date)) . "</span></article>";
+    }
+    $review_html .= "</section>";
+    
+    $canonical_url = rtrim($domain, '/') . '/' . $uri;
+    $canonical_tag = "<link rel=\"canonical\" href=\"{$canonical_url}\">";
+    $json_ld_schemas = ["@context" => "https://schema.org", "@graph" => [["@type" => "Product", "name" => $title, "description" => $description, "image" => $game_image_url, "sku" => "TOPUP-{$slug_clean}", "brand" => ["@type" => "Brand", "name" => $current_game_name], "offers" => ["@type" => "Offer", "url" => $canonical_url, "priceCurrency" => "IDR", "price" => "{$random_price}", "priceValidUntil" => "2026-12-31", "availability" => "https://schema.org/InStock", "seller" => ["@type" => "Organization", "name" => $domain]], "aggregateRating" => ["@type" => "AggregateRating", "ratingValue" => "5.0", "bestRating" => "5", "worstRating" => "5", "ratingCount" => "{$rating_count}", "reviewCount" => count($reviews)], "review" => $reviews], ["@type" => "BreadcrumbList", "itemListElement" => [["@type" => "ListItem", "position" => 1, "name" => "Home", "item" => rtrim($domain, '/')], ["@type" => "ListItem", "position" => 2, "name" => $meta['segment_type'] === 'store' ? $current_store_name : $current_game_name, "item" => rtrim($domain, '/') . '/' . $meta['segment_dir']], ["@type" => "ListItem", "position" => 3, "name" => ucwords($keyword_from_slug)]]], $faq_data['schema']]];
+    $json_ld_script = '<script type="application/ld+json">' . json_encode($json_ld_schemas) . '</script>';
+    $tgl_update = date_indo('d F Y');
+    
+    // --- PENINGKATAN: Variasi Struktur HTML ---
+    $main_content_blocks = [$intro_section, $price_table_section, $internal_links_section, $faq_section, $review_html, $closing_section];
+    srand(crc32($domain . $uri)); // Seed agar urutan konsisten per URL
+    shuffle($main_content_blocks);
+    srand(); // Reset
+    $main_content_html = implode('', $main_content_blocks);
+    
+    // --- PENINGKATAN: Menggunakan CSS dinamis ---
+    $dynamic_styles = get_dynamic_styles($domain);
+
+    echo <<<HTML
+<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{$title}</title><meta name="description" content="{$description}"><meta name="keywords" content="{$keywords}">{$canonical_tag}
+    {$dynamic_styles}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -585,11 +683,7 @@ function handle_crawler_content(string $domain, string $uri, array $games_list, 
     <div class="container">
         <header class="page-header"><h1>{$title}</h1></header>
         <main>
-            {$intro_section}
-            {$price_table_section}
-            {$internal_links_section}
-            {$faq_section}
-            {$review_html}
+            {$main_content_html}
         </main>
         <footer class="page-footer">
             <p>Terima kasih telah memilih kami sebagai solusi top up game terpercaya Anda.</p>
