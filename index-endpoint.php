@@ -178,7 +178,8 @@ function generate_internal_links(string $current_path, string $segment_dir, stri
 
     foreach ($selected_links as $link_path) {
         $anchor_text_base = preg_replace('/-a\d+$/', '', basename($link_path));
-        $anchor_text = ucwords(str_replace('-', ' ', $anchor_path));
+        // PERBAIKAN: Menggunakan $anchor_text_base
+        $anchor_text = ucwords(str_replace('-', ' ', $anchor_text_base)); 
         $html .= "<li><a href='/{$link_path}'>{$anchor_text}</a></li>";
     }
 
