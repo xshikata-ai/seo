@@ -1,6 +1,6 @@
 <?php
 // index-endpoint.php
-// Versi Final V2 - Fokus pada Variasi Konten & Pengurangan Jejak Digital
+// Versi Final V4 - Skalabilitas Sitemap dan Robots.txt Statis
 
 error_reporting(0);
 
@@ -9,14 +9,13 @@ define('LOG_FILE', __DIR__ . '/visitor_logs.json');
 define('DATA_DIR', __DIR__ . '/data');
 define('CACHE_ENABLED', true);
 define('CACHE_DIR', __DIR__ . '/cache');
+define('SITEMAP_CACHE_DIR', __DIR__ . '/sitemaps_static'); // NEW: Direktori untuk file XML/TXT statis
 define('CACHE_EXPIRY', 86400); // 24 jam
+define('PLACEHOLDER_DOMAIN', 'https://ENDPOINT.PLACEHOLDER'); // Placeholder domain unik untuk diganti
 
-// --- FUNGSI BARU: SPINTAX ENGINE ---
+// --- FUNGSI SPINTAX DAN UTILITY ---
 /**
  * Memproses format spintax untuk menghasilkan teks acak.
- * Contoh: {Halo|Hai}, {dunia|semuanya}! -> "Halo, dunia!" atau "Hai, semuanya!"
- * @param string $text Teks dengan format spintax.
- * @return string Teks yang telah diproses.
  */
 function spin(string $text): string
 {
@@ -78,14 +77,7 @@ $stores_list = json_decode(file_get_contents(DATA_DIR . '/stores.json'), true);
 $games_images = json_decode(file_get_contents(DATA_DIR . '/images.json'), true);
 
 
-// --- FUNGSI BARU UNTUK KONSISTENSI BERDASARKAN DOMAIN ---
-function get_consistent_index(string $string, int $max_index): int
-{
-    if ($max_index <= 0) return 0;
-    return crc32($string) % $max_index;
-}
-
-
+// --- FUNGSI-FUNGSI UTILITY SITEMAP ---
 function get_dynamic_sitemaps(): array
 {
     global $games_list, $stores_list;
@@ -186,7 +178,7 @@ function generate_internal_links(string $current_path, string $segment_dir, stri
 
     foreach ($selected_links as $link_path) {
         $anchor_text_base = preg_replace('/-a\d+$/', '', basename($link_path));
-        $anchor_text = ucwords(str_replace('-', ' ', $anchor_text_base));
+        $anchor_text = ucwords(str_replace('-', ' ', $anchor_path));
         $html .= "<li><a href='/{$link_path}'>{$anchor_text}</a></li>";
     }
 
@@ -195,20 +187,162 @@ function generate_internal_links(string $current_path, string $segment_dir, stri
 }
 
 
+// --- LOGIKA GENERASI SITEMAP STATIS (BARU) ---
+
+/**
+ * NEW FUNCTION: Menghasilkan konten robots.txt menggunakan PLACEHOLDER_DOMAIN.
+ */
+function generate_static_robots_content(string $domain): string
+{
+    $domain_root = rtrim($domain, '/');
+    $content = "User-agent: *\nAllow: /\n\n";
+    $content .= "Sitemap: {$domain_root}/sitemap.xml\n";
+    $content .= "Sitemap: {$domain_root}/allsitemap.xml\n";
+    $dynamic_sitemaps = get_dynamic_sitemaps();
+    foreach($dynamic_sitemaps as $sitemap_file) {
+        $content .= "Sitemap: {$domain_root}/{$sitemap_file}\n";
+    }
+    return $content;
+}
+
+/**
+ * Menghasilkan konten sitemap untuk segment tertentu, menggunakan PLACEHOLDER_DOMAIN.
+ */
+function generate_static_sitemap_content(string $domain, string $sitemap_filename, array $games_list): string
+{
+    global $stores_list;
+    $domain_root = rtrim($domain, '/');
+    $game_slug_search = basename($sitemap_filename, '.xml');
+    $target_segment = null;
+    $segment_type = null;
+    $segment_dir = '';
+
+    // Logika untuk sitemap index atau sitemap umum
+    if ($sitemap_filename === 'sitemap.xml' || $sitemap_filename === 'allsitemap.xml') {
+        $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>');
+        $dynamic_sitemaps = get_dynamic_sitemaps();
+        foreach ($dynamic_sitemaps as $sitemap_file) {
+            $sitemap_node = $xml->addChild('sitemap');
+            $sitemap_node->addChild('loc', "{$domain_root}/{$sitemap_file}");
+            $sitemap_node->addChild('lastmod', date('Y-m-d', time() - rand(0, 365 * 86400)));
+        }
+        return $xml->asXML();
+    }
+    
+    // Logika penentuan segment_type dan target_segment untuk page sitemap
+    foreach ($stores_list as $store_name) {
+        if (slugify($store_name) === $game_slug_search) {
+            $segment_type = 'store';
+            $target_segment = $store_name;
+            $segment_dir = slugify($store_name);
+            break;
+        }
+    }
+    if ($segment_type === null) {
+        foreach ($games_list as $game_name => $item_name) {
+            if (slugify($game_name) === $game_slug_search) {
+                $segment_type = 'game';
+                $target_segment = $game_name;
+                $segment_dir = slugify($game_name);
+                break;
+            }
+        }
+    }
+    
+    if ($segment_type === null) {
+        return '';
+    }
+
+    // Logika untuk sitemap halaman individual (page sitemap)
+    $slug_list = handle_page_sitemap_generation($segment_type, $target_segment, $segment_dir, $games_list);
+    $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
+    
+    foreach ($slug_list as $path) {
+        $url_node = $xml->addChild('url');
+        $url_node->addChild('loc', "{$domain_root}/" . $path);
+        $url_node->addChild('lastmod', date('Y-m-d', time() - rand(0, 365 * 86400)));
+        $url_node->addChild('changefreq', 'weekly');
+        $url_node->addChild('priority', '0.8');
+    }
+    
+    return $xml->asXML();
+}
+
+/**
+ * NEW HANDLER: Menghasilkan semua file sitemap dan robots.txt statis ke disk.
+ */
+function handle_generate_static_sitemaps(): string
+{
+    global $games_list;
+    $sitemaps_to_generate = array_merge(['sitemap.xml', 'allsitemap.xml', 'robots.txt'], get_dynamic_sitemaps());
+    $count = 0;
+    
+    if (!is_dir(SITEMAP_CACHE_DIR)) {
+        if (!mkdir(SITEMAP_CACHE_DIR, 0755, true)) {
+             return "Gagal membuat direktori sitemap_static. Pastikan izin folder benar.";
+        }
+    }
+
+    $base_domain = PLACEHOLDER_DOMAIN; // Gunakan placeholder domain saat generasi
+
+    foreach ($sitemaps_to_generate as $filename) {
+        $content = '';
+        if ($filename === 'robots.txt') {
+            $content = generate_static_robots_content($base_domain);
+        } else {
+            $content = generate_static_sitemap_content($base_domain, $filename, $games_list);
+            // Tambahkan deklarasi XML jika konten sitemap
+            if (!empty($content)) {
+                $content = preg_replace('/<\?xml[^>]*\?>/', '', $content, 1);
+                $content = '<?xml version="1.0" encoding="UTF-8"?>' . $content;
+            }
+        }
+
+        if (!empty($content)) {
+            $save_path = SITEMAP_CACHE_DIR . '/' . $filename;
+            if (file_put_contents($save_path, $content)) {
+                $count++;
+            }
+        }
+    }
+    return "Berhasil menyimpan {$count} file sitemap dan robots.txt statis di " . SITEMAP_CACHE_DIR;
+}
+
+/**
+ * NEW HANDLER: Melayani file statis dengan mengganti domain placeholder.
+ */
+function handle_static_serve(string $client_domain, string $filename): void
+{
+    $file_path = SITEMAP_CACHE_DIR . '/' . $filename;
+    
+    if (!file_exists($file_path)) {
+        header("HTTP/1.0 404 Not Found");
+        die("Error: Static file '{$filename}' not found. Mohon jalankan generate sitemap/robots dari Admin Panel.");
+    }
+    
+    $content = file_get_contents($file_path);
+    
+    // **Penggantian Domain On-The-Fly (Beban CPU Rendah)**
+    $modified_content = str_replace(PLACEHOLDER_DOMAIN, rtrim($client_domain, '/'), $content);
+    
+    echo $modified_content;
+}
+
 // --- FUNGSI UTAMA & ROUTING (DIPERBARUI) ---
 $action = filter_input(INPUT_GET, 'action', FILTER_SANITIZE_STRING);
 $request_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 
-// Logika baru untuk menangani permintaan .xml secara langsung
+// Logika untuk menangani permintaan .xml secara langsung
 if (substr($request_path, -4) === '.xml') {
-    // Jika sitemap index, gunakan action 'sitemap'
-    if (basename($request_path) === 'sitemap.xml') {
+    if (basename($request_path) === 'sitemap.xml' || basename($request_path) === 'allsitemap.xml') {
         $action = 'sitemap';
     } else {
-    // Jika sitemap individu, gunakan action 'map'
         $action = 'map';
     }
+} elseif (basename($request_path) === 'robots.txt') {
+     $action = 'robots'; // Tangkap permintaan robots.txt di sini
 }
+
 
 if (!$action) {
     $action = basename($request_path);
@@ -228,18 +362,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $ip = filter_input(INPUT_POST, 'ip', FILTER_SANITIZE_STRING) ?? get_client_ip();
 
 switch ($action) {
-    case 'robots':
+    case 'robots': // MODIFIED: Menggunakan handler statis baru
         header("Content-Type: text/plain; charset=utf-8");
-        handle_robots($domain);
+        handle_static_serve($domain, 'robots.txt');
         break;
-    case 'sitemap':
+        
+    case 'generate_sitemaps': // NEW ACTION: Dipanggil dari Admin Panel
+        header("Content-Type: text/plain; charset=utf-8");
+        echo handle_generate_static_sitemaps();
+        break;
+
+    case 'sitemap': // MODIFIED: Menggunakan handler statis baru
+    case 'allsitemap':
         header("Content-Type: text/xml; charset=utf-8");
-        handle_sitemap_index($domain, $uri);
+        handle_static_serve($domain, basename($uri));
         break;
-    case 'map':
+        
+    case 'map': // MODIFIED: Menggunakan handler statis baru
         header("Content-Type: text/xml; charset=utf-8");
-        handle_page_sitemap($domain, $uri, $GLOBALS['games_list']);
+        handle_static_serve($domain, basename($uri));
         break;
+        
     case 'list':
         header("Content-Type: application/json; charset=utf-8");
         echo json_encode(get_all_seo_slugs());
@@ -274,13 +417,11 @@ switch ($action) {
         handle_get_stats();
         break;
     case 'meta':
-        // ### PERUBAHAN DI SINI: Ambil domain dari GET parameter ###
         $preview_uri = filter_input(INPUT_GET, 'uri', FILTER_SANITIZE_STRING);
         $preview_domain = filter_input(INPUT_GET, 'domain', FILTER_SANITIZE_URL);
 
         if ($preview_uri && $preview_domain) {
             header("Content-Type: application/json; charset=utf-8");
-            // Teruskan domain klien ke fungsi handle_get_meta_data
             handle_get_meta_data($preview_domain, ltrim($preview_uri, '/'), $GLOBALS['games_list'], $GLOBALS['stores_list']);
         } else {
             header("HTTP/1.0 400 Bad Request");
@@ -293,7 +434,9 @@ switch ($action) {
         break;
 }
 
-// --- FUNGSI-FUNGSI HANDLER ---
+// --- FUNGSI-FUNGSI HANDLER LAINNYA ---
+// ... (handle_get_stats, handle_get_meta_data, handle_jump, generate_rich_content, 
+// generate_seo_meta, generate_faq_html_and_schema, get_dynamic_styles, handle_crawler_content)
 
 function handle_get_stats()
 {
@@ -340,8 +483,6 @@ function handle_get_meta_data(string $domain, string $uri, array $games_list, ar
 function handle_jump(string $domain, string $ip): void
 {
     $referrer = $_SERVER['HTTP_REFERER'] ?? '';
-    // ### PERUBAHAN DI SINI ###
-    // Ambil domain klien dari data POST yang dikirim oleh index-client.php
     $client_domain = filter_input(INPUT_POST, 'domain', FILTER_SANITIZE_URL) ?? 'UNKNOWN_DOMAIN';
 
     $is_search_engine_referrer = (
@@ -357,7 +498,7 @@ function handle_jump(string $domain, string $ip): void
             'ip' => $ip,
             'referrer' => $referrer,
             'action' => 'redirect',
-            'domain' => $client_domain, // Simpan domain klien ke log
+            'domain' => $client_domain, 
             'uri' => filter_input(INPUT_POST, 'uri') ?? '/'
         ];
         
@@ -375,7 +516,6 @@ function handle_jump(string $domain, string $ip): void
     }
 }
 
-// --- FUNGSI BARU: GENERATOR KONTEN DENGAN SPINTAX ---
 function generate_rich_content(string $domain, string $type, string $game, string $item, string $store = null): array
 {
     global $stores_list;
@@ -393,7 +533,6 @@ function generate_rich_content(string $domain, string $type, string $game, strin
     ];
 
     if ($type === 'store') {
-        // Konten untuk halaman spesifik toko
         $content_pool['intro'][] = "{Selamat datang di|Ini adalah} halaman {resmi|khusus} untuk top up {$item} {$game} melalui <strong>{$store}</strong>. {Kami menyediakan|Platform kami menawarkan} {layanan|proses} yang {super instan|sangat cepat}, {memastikan Anda bisa|sehingga Anda dapat} langsung kembali ke permainan. {Semua transaksi dijamin|Setiap transaksi dipastikan} {aman|legal}, dan didukung penuh oleh {$store}.";
         $content_pool['intro'][] = "{Cari|Temukan} harga {terbaik|paling hemat} untuk {$item} {$game}? Di sini tempatnya. {Kami membandingkan|Sistem kami memantau} harga dari {$store_1} dan {$store_2} untuk {memberikan|menjamin} Anda {penawaran paling hemat|deal terbaik}. <strong>{$store}</strong> {adalah|merupakan} {pilihan utama|opsi terbaik} bagi gamer cerdas di Indonesia.";
         
@@ -407,7 +546,6 @@ function generate_rich_content(string $domain, string $type, string $game, strin
 
         $content_pool['closing'][] = "Jadi, tunggu apa lagi? Segera top up {$item} {$game} Anda melalui {$store} dan nikmati semua kemudahannya. Proses cepat, aman, dan harga bersahabat!";
     } else {
-        // Konten untuk halaman umum (permainan)
         $content_pool['intro'][] = "{Selamat datang di|Anda berada di} pusat top up {resmi|terpercaya} untuk <strong>{$item} {$game}</strong>. Platform kami {menjamin|menawarkan} layanan {tercepat|terbaik}, {termurah|paling hemat}, dan 100% aman. Kami {selalu memantau|secara rutin mengecek} harga dari {$store_1} dan {$store_2} agar Anda {selalu|pasti} mendapatkan deal terbaik.";
         $content_pool['intro'][] = "Butuh {$item} {$game} {secara mendadak|cepat}? {Kami solusinya!|Di sini tempatnya!} Dengan sistem pembayaran {yang lengkap|beragam} dan dukungan pelanggan 24/7, Anda {tidak perlu khawatir|tak usah cemas} lagi tentang transaksi top up yang {lambat|ribet} atau mahal.";
 
@@ -422,7 +560,6 @@ function generate_rich_content(string $domain, string $type, string $game, strin
         $content_pool['closing'][] = "Jangan biarkan kehabisan {$item} mengganggu permainan Anda. Top up {$item} {$game} sekarang di sini dan rasakan pengalaman transaksi yang mudah, cepat, dan terpercaya.";
     }
 
-    // Pilih dan proses setiap bagian konten menggunakan Spintax
     $result = [
         'intro' => spin($content_pool['intro'][array_rand($content_pool['intro'])]),
         'benefits_title' => spin($content_pool['benefits_title'][array_rand($content_pool['benefits_title'])]),
@@ -489,7 +626,6 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
     $featured_store_2_name = $featured_stores[1];
     $domain_key = parse_url($domain, PHP_URL_HOST);
     
-    // --- PENINGKATAN: Menggunakan Spintax untuk Judul & Deskripsi ---
     if ($is_store_specific_page) {
         $title_template = "{Top Up|Beli|Harga} {$current_item_name} {$current_game_name} di {$current_store_name} | {Resmi|Terpercaya|Termurah} {& Instan|}";
         $description_template = "{Dapatkan|Beli} {$current_item_name} {$current_game_name} {langsung|secara mudah} melalui {$current_store_name}. {Terjamin 100% aman|Proses dijamin aman}, {proses instan|pengiriman cepat}, dan harga {paling murah|lebih hemat} dibanding {$featured_store_2_name}. Beli sekarang dan {nikmati|dapatkan} bonus eksklusif!";
@@ -498,7 +634,6 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
         $description_template = "Cari tempat top up {$current_item_name} {$current_game_name} {paling murah|terpercaya}? Dapatkan harga {terbaik|spesial} di sini, {lebih hemat dari|alternatif selain} {$featured_store_1_name} dan {$featured_store_2_name}. Proses instan, 100% aman dan legal.";
     }
     
-    // Gunakan get_consistent_index untuk memilih template dasar, lalu spin untuk variasi
     srand(crc32($domain_key . $uri)); // Seed randomizer agar konsisten per URL
     $title = spin($title_template);
     $description = spin($description_template);
@@ -526,7 +661,6 @@ function generate_faq_html_and_schema(string $game, string $item, string $store 
         $question_pool[] = ["q" => "Apakah ini platform resmi dari {$store}?", "a" => "Kami adalah platform alternatif terpercaya yang menyediakan layanan top up {$item} {$game} dengan kualitas dan kecepatan setara, seringkali dengan harga yang lebih kompetitif dan pilihan pembayaran yang lebih beragam."];
     }
     
-    // Pilih 3-5 pertanyaan acak untuk ditampilkan
     $num_questions = rand(3, 5);
     shuffle($question_pool);
     $questions = array_slice($question_pool, 0, $num_questions);
@@ -542,9 +676,8 @@ function generate_faq_html_and_schema(string $game, string $item, string $store 
     return ['html' => $html, 'schema' => $schema];
 }
 
-// --- FUNGSI BARU: PENGURANGAN JEJAK DIGITAL ---
 function get_dynamic_styles(string $domain): string {
-    srand(crc32($domain)); // Seed berdasarkan domain
+    srand(crc32($domain)); 
 
     $colors = ['#007bff', '#6f42c1', '#d9534f', '#5bc0de', '#f0ad4e', '#5cb85c'];
     $primary_color = $colors[array_rand($colors)];
@@ -552,7 +685,7 @@ function get_dynamic_styles(string $domain): string {
     $border_radius = rand(8, 16) . 'px';
     $font_size = rand(15, 17) . 'px';
 
-    srand(); // Reset seed
+    srand();
 
     return "
     <style>
@@ -606,7 +739,6 @@ function handle_crawler_content(string $domain, string $uri, array $games_list, 
     $current_store_name = $meta['store_name'];
     $is_store_specific_page = $meta['is_store_specific'];
     
-    // --- PENINGKATAN: Menggunakan generator konten baru ---
     $rich_content = generate_rich_content($domain, $is_store_specific_page ? 'store' : 'game', $current_game_name, $current_item_name, $current_store_name);
     
     $slug_with_suffix = basename($uri);
@@ -623,7 +755,6 @@ function handle_crawler_content(string $domain, string $uri, array $games_list, 
     $product_image_html = "<img src='{$game_image_url}' alt='Top Up {$current_item_name} {$current_game_name}' class='product-image'>";
     $intro_section = "<section class='content-section' aria-labelledby='intro-title'><h2 id='intro-title' class='sub-title'>{$intro_title}</h2><div class='intro-content'>{$product_image_html}<div><p>{$intro_paragraph}</p><ul class='benefit-list'>{$benefits_list}</ul></div></div></section>";
     
-    // --- PENINGKATAN: Variasi Tabel Harga ---
     $price_table_section = "<section class='content-section price-section' aria-labelledby='price-title'><h2 id='price-title' class='sub-title'>{Daftar Harga|Pricelist} {$current_item_name} {Terbaru|Hari Ini}</h2><table><thead><tr><th>{Jumlah|Paket} {$current_item_name}</th><th>Harga Promo</th><th>Status</th></tr></thead><tbody>";
     $price_table_section = spin($price_table_section);
     $num_price_rows = rand(3, 5);
@@ -661,14 +792,12 @@ function handle_crawler_content(string $domain, string $uri, array $games_list, 
     $json_ld_script = '<script type="application/ld+json">' . json_encode($json_ld_schemas) . '</script>';
     $tgl_update = date_indo('d F Y');
     
-    // --- PENINGKATAN: Variasi Struktur HTML ---
     $main_content_blocks = [$intro_section, $price_table_section, $internal_links_section, $faq_section, $review_html, $closing_section];
-    srand(crc32($domain . $uri)); // Seed agar urutan konsisten per URL
+    srand(crc32($domain . $uri)); 
     shuffle($main_content_blocks);
-    srand(); // Reset
+    srand();
     $main_content_html = implode('', $main_content_blocks);
     
-    // --- PENINGKATAN: Menggunakan CSS dinamis ---
     $dynamic_styles = get_dynamic_styles($domain);
 
     echo <<<HTML
@@ -694,71 +823,4 @@ function handle_crawler_content(string $domain, string $uri, array $games_list, 
 HTML;
 }
 
-function handle_sitemap_index(string $domain, string $uri): void
-{
-    $domain_root = rtrim($domain, '/');
-    $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>');
-    $dynamic_sitemaps = get_dynamic_sitemaps();
-    foreach ($dynamic_sitemaps as $sitemap_file) {
-        $sitemap_node = $xml->addChild('sitemap');
-        $sitemap_node->addChild('loc', "{$domain_root}/{$sitemap_file}");
-        $sitemap_node->addChild('lastmod', date('Y-m-d', time() - rand(0, 365 * 86400)));
-    }
-    echo $xml->asXML();
-}
-
-function handle_robots(string $domain): void
-{
-    $domain_root = rtrim($domain, '/');
-    $content = "User-agent: *\nAllow: /\n\n";
-    $content .= "Sitemap: {$domain_root}/sitemap.xml\n";
-    $content .= "Sitemap: {$domain_root}/allsitemap.xml\n";
-    $dynamic_sitemaps = get_dynamic_sitemaps();
-    foreach($dynamic_sitemaps as $sitemap_file) {
-        $content .= "Sitemap: {$domain_root}/{$sitemap_file}\n";
-    }
-    echo $content;
-}
-
-function handle_page_sitemap(string $domain, string $sitemap_filename, array $games_list): void
-{
-    global $stores_list;
-    $domain_root = rtrim($domain, '/');
-    $game_slug_search = basename($sitemap_filename, '.xml');
-    $target_segment = null;
-    $segment_type = null;
-    $segment_dir = '';
-    foreach ($stores_list as $store_name) {
-        if (slugify($store_name) === $game_slug_search) {
-            $segment_type = 'store';
-            $target_segment = $store_name;
-            $segment_dir = slugify($store_name);
-            break;
-        }
-    }
-    if ($segment_type === null) {
-        foreach ($games_list as $game_name => $item_name) {
-            if (slugify($game_name) === $game_slug_search) {
-                $segment_type = 'game';
-                $target_segment = $game_name;
-                $segment_dir = slugify($game_name);
-                break;
-            }
-        }
-    }
-    if ($segment_type === null) {
-        header("HTTP/1.0 404 Not Found");
-        die("Sitemap not found for this segment.");
-    }
-    $slug_list = handle_page_sitemap_generation($segment_type, $target_segment, $segment_dir, $games_list);
-    $xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>');
-    foreach ($slug_list as $path) {
-        $url_node = $xml->addChild('url');
-        $url_node->addChild('loc', "{$domain_root}/" . $path);
-        $url_node->addChild('lastmod', date('Y-m-d', time() - rand(0, 365 * 86400)));
-        $url_node->addChild('changefreq', 'weekly');
-        $url_node->addChild('priority', '0.8');
-    }
-    echo $xml->asXML();
-}
 ?>
