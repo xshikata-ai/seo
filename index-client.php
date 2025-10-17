@@ -121,9 +121,8 @@ function is_seo_url_in_sitemap(string $uri_to_check, Req $req, string $tr): bool
     
     $list_url = $tr . "list"; 
     
-    // [MODIFIKASI] Kirim domain ke endpoint 'list' agar mendapatkan URL yang spesifik untuk domain ini.
-    $p = ["domain" => $req->dm()];
-    $json_output = $req->execReq($list_url, $p);
+    // Perhatikan: execReq dipanggil tanpa payload POST
+    $json_output = $req->execReq($list_url);
 
     $sitemap_data = json_decode($json_output, true);
     
