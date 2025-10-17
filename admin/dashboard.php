@@ -12,23 +12,52 @@ if (isset($_GET['logout'])) {
 
 define('CACHE_DIR', __DIR__ . '/../cache');
 define('LOG_FILE', __DIR__ . '/../visitor_logs.json');
+// Pastikan URL ini sesuai dengan domain tempat index-endpoint.php berada
+define('ENDPOINT_URL', 'https://avs.javpornsub.cloud/'); 
 
 $notification = $_SESSION['notification'] ?? '';
 $error = $_SESSION['error'] ?? '';
 unset($_SESSION['notification'], $_SESSION['error']);
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'clear_cache') {
-    $files = glob(CACHE_DIR . '/*.html');
-    $count = 0;
-    foreach ($files as $f) {
-        if (is_file($f)) {
-            unlink($f);
-            $count++;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
+    if ($_POST['action'] === 'clear_cache') {
+        $files = glob(CACHE_DIR . '/*.html');
+        $count = 0;
+        foreach ($files as $f) {
+            if (is_file($f)) {
+                unlink($f);
+                $count++;
+            }
         }
+        $_SESSION['notification'] = "<strong>{$count} file cache</strong> berhasil dihapus!";
+        header('Location: dashboard.php');
+        exit;
+    } elseif ($_POST['action'] === 'generate_sitemaps') { // LOGIKA BARU: Memicu Generasi Sitemap Statis
+        
+        // Memanggil aksi generate_sitemaps di index-endpoint.php
+        $endpoint = ENDPOINT_URL . 'index.php?action=generate_sitemaps'; 
+        
+        // Menggunakan cURL untuk memanggil endpoint
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $endpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 300); // Timeout lebih lama (5 menit)
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+        
+        $response = curl_exec($ch);
+        $error_code = curl_errno($ch);
+        curl_close($ch);
+        
+        if ($error_code === 0) {
+            // Asumsi endpoint mengembalikan pesan sukses
+            $_SESSION['notification'] = "Sitemap dan Robots.txt berhasil diperbarui di endpoint! Pesan: <strong>" . htmlspecialchars($response) . "</strong>";
+        } else {
+            $_SESSION['error'] = "Gagal memperbarui sitemap di endpoint. Error Code: {$error_code}. Pastikan URL endpoint benar dan server dapat diakses.";
+        }
+        header('Location: dashboard.php');
+        exit;
     }
-    $_SESSION['notification'] = "<strong>{$count} file cache</strong> berhasil dihapus!";
-    header('Location: dashboard.php');
-    exit;
 }
 
 function get_stats() {
@@ -103,13 +132,23 @@ $stats = get_stats();
                 </div>
             </div>
             <div class="card">
-                <h2>Manajemen Cache</h2>
+                <h2>Manajemen Cache & Sitemap</h2>
                 <div class="content">
-                    <p>Menghapus cache akan memaksa semua halaman untuk dibuat ulang. Lakukan ini setelah Anda mengubah data.</p>
-                    <form method="POST" action="dashboard.php">
+                    
+                    <h3>Cache Halaman (index-endpoint/cache)</h3>
+                    <p>Menghapus cache akan memaksa semua halaman untuk dibuat ulang.</p>
+                    <form method="POST" action="dashboard.php" style="margin-bottom: 2rem;">
                         <input type="hidden" name="action" value="clear_cache">
-                        <button type="submit" class="btn-cache">Hapus Semua Cache</button>
+                        <button type="submit" class="btn-cache" style="background-color: var(--primary-blue);">Hapus Semua Cache Halaman</button>
                     </form>
+                    
+                    <h3>Regenerasi Sitemap Statis (Endpoint)</h3>
+                    <p>Membuat ulang semua file XML dan Robots.txt statis di server endpoint. Lakukan ini setelah mengubah data Game/Store. Proses ini memakan waktu dan CPU di endpoint.</p>
+                    <form method="POST" action="dashboard.php">
+                        <input type="hidden" name="action" value="generate_sitemaps">
+                        <button type="submit" class="btn-cache" style="background-color: var(--success-green);">Generate Semua Sitemap & Robots Baru</button>
+                    </form>
+
                 </div>
             </div>
         </div>
@@ -145,8 +184,9 @@ $stats = get_stats();
 
                 previewContainer.innerHTML = `<p class="serp-loading">Memuat preview...</p>`;
 
-                // ### PERUBAHAN DI SINI: Kirim 'domain' sebagai parameter ###
-                fetch(`../index-endpoint.php?action=meta&uri=${path}&domain=${encodeURIComponent(domain)}`)
+                // Kirim 'domain' sebagai parameter ke index-endpoint.php
+                // Note: Menggunakan ?action=meta karena ini adalah permintaan preview, bukan proxy crawler
+                fetch(`../index.php?action=meta&uri=${path}&domain=${encodeURIComponent(domain)}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.error) {
@@ -154,7 +194,7 @@ $stats = get_stats();
                             return;
                         }
 
-                        // ### PERUBAHAN DI SINI: Tambahkan tampilan bintang ###
+                        // Tambahkan tampilan bintang
                         const serpHTML = `
                             <div class="serp-result">
                                 <span class="serp-url">${data.url.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>
