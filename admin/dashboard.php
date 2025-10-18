@@ -154,12 +154,13 @@ $stats = get_stats();
         </div>
 
         <div class="card" style="margin-top: 2rem;">
-            <h2>Google SERP Preview</h2>
+            <h2>Pratinjau Halaman SEO</h2>
             <div class="content">
-                <p>Masukkan salah satu URL SEO Anda untuk melihat pratinjau tampilannya di hasil pencarian Google.</p>
+                <p>Masukkan salah satu URL SEO Anda untuk melihat pratinjau SERP dan mendapatkan link untuk melihat halaman SEO secara langsung (tanpa redirect).</p>
                 <div class="serp-form">
                     <input type="text" id="serp-url-input" placeholder="Contoh: https://domain-anda.com/mobile-legends-mlbb/top-up-diamonds-termurah-a1">
                     <button id="serp-preview-btn" class="btn btn-save">Lihat Preview</button>
+                    <a href="#" id="live-preview-link" class="btn-nav" style="display:none; background-color: var(--success-green);" target="_blank">Lihat Halaman SEO</a>
                 </div>
                 <div id="serp-preview-container">
                     </div>
@@ -171,6 +172,10 @@ $stats = get_stats();
         document.getElementById('serp-preview-btn').addEventListener('click', function() {
             const urlInput = document.getElementById('serp-url-input').value;
             const previewContainer = document.getElementById('serp-preview-container');
+            const livePreviewLink = document.getElementById('live-preview-link');
+            
+            // Sembunyikan link pada permintaan baru
+            livePreviewLink.style.display = 'none';
 
             if (!urlInput) {
                 previewContainer.innerHTML = `<p class="serp-error">Silakan masukkan URL.</p>`;
@@ -178,23 +183,28 @@ $stats = get_stats();
             }
 
             try {
+                // Kunci rahasia ini HARUS SAMA dengan yang ada di index-client.php
+                const previewKey = 'secretpreview12345';
+
                 const urlObject = new URL(urlInput);
                 const path = urlObject.pathname;
-                const domain = `${urlObject.protocol}//${urlObject.hostname}`; // Ekstrak domain klien
+                const domain = `${urlObject.protocol}//${urlObject.hostname}`;
 
                 previewContainer.innerHTML = `<p class="serp-loading">Memuat preview...</p>`;
 
-                // Kirim 'domain' sebagai parameter ke index-endpoint.php
-                // Note: Menggunakan ?action=meta karena ini adalah permintaan preview, bukan proxy crawler
+                // Perbarui link pratinjau langsung dan tampilkan
+                livePreviewLink.href = `${urlInput.split('?')[0]}?_preview=${previewKey}`;
+                livePreviewLink.style.display = 'inline-block';
+
                 fetch(`../index.php?action=meta&uri=${path}&domain=${encodeURIComponent(domain)}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.error) {
                             previewContainer.innerHTML = `<p class="serp-error">Error: ${data.error}</p>`;
+                            livePreviewLink.style.display = 'none'; // Sembunyikan jika error
                             return;
                         }
 
-                        // Tambahkan tampilan bintang
                         const serpHTML = `
                             <div class="serp-result">
                                 <span class="serp-url">${data.url.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</span>
@@ -212,10 +222,12 @@ $stats = get_stats();
                     .catch(error => {
                         previewContainer.innerHTML = `<p class="serp-error">Gagal memuat preview. Cek koneksi atau URL endpoint.</p>`;
                         console.error('Fetch error:', error);
+                        livePreviewLink.style.display = 'none'; // Sembunyikan jika error
                     });
 
             } catch (e) {
                 previewContainer.innerHTML = `<p class="serp-error">URL yang Anda masukkan tidak valid.</p>`;
+                livePreviewLink.style.display = 'none';
             }
         });
     </script>
