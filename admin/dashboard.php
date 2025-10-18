@@ -13,7 +13,7 @@ if (isset($_GET['logout'])) {
 define('CACHE_DIR', __DIR__ . '/../cache');
 define('LOG_FILE', __DIR__ . '/../visitor_logs.json');
 // Pastikan URL ini sesuai dengan domain tempat index-endpoint.php berada
-define('ENDPOINT_URL', 'https://avs.javpornsub.cloud/'); 
+define('ENDPOINT_URL', 'https://dirtysecretsporn.com/'); 
 
 $notification = $_SESSION['notification'] ?? '';
 $error = $_SESSION['error'] ?? '';
