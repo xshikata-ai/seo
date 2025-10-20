@@ -628,8 +628,9 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
     $current_game_name = null;
     $current_item_name = null;
     $current_store_name = null;
+    $detected_action = null;
 
-    // 1. Temukan nama game dan item dari direktori URL
+    // 1. Temukan nama game dan item
     foreach ($games_list as $game => $item) {
         if (slugify($game) === $game_slug) {
             $current_game_name = $game;
@@ -642,10 +643,19 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
         return ['title' => 'Halaman Tidak Ditemukan', 'description' => 'Konten yang Anda cari tidak tersedia.', 'game_name' => null, 'item_name' => null, 'store_name' => null, 'is_store_specific' => false, 'segment_dir' => '', 'segment_type' => '', 'target_segment' => ''];
     }
 
-    // 2. Temukan nama toko dari dalam slug URL
+    // 2. Temukan nama toko
     foreach ($stores_list as $store) {
         if (strpos($main_slug, slugify($store)) !== false) {
             $current_store_name = $store;
+            break;
+        }
+    }
+    
+    // 3. DETEKSI KATA KUNCI AKSI DARI URL (INI BAGIAN BARUNYA)
+    $aksi_list = ['top up', 'beli', 'isi ulang'];
+    foreach($aksi_list as $aksi) {
+        if (strpos($main_slug, slugify($aksi)) !== false) {
+            $detected_action = ucwords($aksi); // Simpan kata kunci yang ditemukan
             break;
         }
     }
@@ -654,22 +664,21 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
     $domain_key = parse_url($domain, PHP_URL_HOST);
     srand(crc32($domain_key . $uri));
 
-    // 3. Buat judul dan deskripsi berdasarkan apakah nama toko ditemukan
+    // 4. Buat judul dan deskripsi dengan logika baru
     if ($current_store_name) {
-        // Jika URL mengandung nama toko (contoh: "...-di-unipin")
-        $title_template = "{Top Up|Beli} {$current_game_name} | {$current_store_name}";
-        $description_template = "Dapatkan harga {$current_item_name} {$current_game_name} terbaik di {$current_store_name}. Proses top up {cepat|instan}, 100% {aman dan legal|resmi dan terpercaya}. Beli sekarang!";
+        // Jika ada kata kunci aksi terdeteksi, gunakan itu. Jika tidak, pakai spintax.
+        $action_for_title = $detected_action ?: spin('{Top Up|Beli}');
         
-        $title = spin($title_template);
+        $title = "{$action_for_title} {$current_game_name} | {$current_store_name}";
+        $description_template = "Dapatkan harga {$current_item_name} {$current_game_name} terbaik di {$current_store_name}. Proses {$action_for_title} {cepat|instan}, 100% {aman dan legal|resmi dan terpercaya}. Beli sekarang!";
         $description = spin($description_template);
 
     } else {
-        // Jika URL bersifat umum (tidak ada nama toko)
+        // Logika untuk halaman umum (tidak ada toko) tetap sama
         $title_template = "{$keyword_from_slug} | {Harga Termurah|Promo Spesial} " . date('Y');
-        $description_template = "Cari tempat top up {$current_item_name} {$current_game_name} {paling murah|terpercaya}? Dapatkan harga {terbaik|spesial} di sini. Proses instan, 100% aman dan legal.";
-
+        $description = "Cari tempat top up {$current_item_name} {$current_game_name} {paling murah|terpercaya}? Dapatkan harga {terbaik|spesial} di sini. Proses instan, 100% aman dan legal.";
         $title = spin($title_template);
-        $description = spin($description_template);
+        $description = spin($description);
     }
 
     srand(); // Reset seed
@@ -903,6 +912,7 @@ HTML;
 }
 
 ?>
+
 
 
 
