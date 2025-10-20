@@ -80,18 +80,15 @@ $games_images = json_decode(file_get_contents(DATA_DIR . '/images.json'), true);
 // --- FUNGSI-FUNGSI UTILITY SITEMAP ---
 function get_dynamic_sitemaps(): array
 {
-    global $games_list, $stores_list;
+    global $games_list;
     $sitemap_files = [];
 
-    foreach ($stores_list as $store_name) {
-        $store_slug = slugify($store_name);
-        $sitemap_files[] = $store_slug . '.xml';
-    }
-
+    // HANYA MEMBUAT SITEMAP BERDASARKAN NAMA GAME
     foreach ($games_list as $game_name => $item_name) {
         $slug_game = slugify($game_name);
         $sitemap_files[] = $slug_game . '.xml';
     }
+    
     return $sitemap_files;
 }
 
@@ -913,4 +910,5 @@ HTML;
 }
 
 ?>
+
 
