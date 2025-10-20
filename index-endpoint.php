@@ -95,46 +95,107 @@ function get_dynamic_sitemaps(): array
     return $sitemap_files;
 }
 
-
 function handle_page_sitemap_generation(string $segment_type, string $target_segment, string $segment_dir, array $games_list): array
 {
-    $final_slug_list = [];
-    $max_urls = 1000;
-    $base_slugs = []; 
+    global $stores_list;
+    $urls = [];
 
-    if ($segment_type === 'store') {
-        $store_action_variations = ['top-up', 'beli', 'harga-promo', 'voucher-diskon'];
-        foreach ($games_list as $game_name => $item_name) {
-            foreach($store_action_variations as $action) {
-                $base_slugs[] = slugify("{$action} {$game_name} {$item_name} di {$target_segment}");
-            }
-        }
-    } elseif ($segment_type === 'game') {
-        $target_item = $games_list[$target_segment] ?? 'item';
-        $action_variations = ['top-up', 'beli', 'harga', 'voucher', 'promo', 'diskon'];
-        $adjective_variations = ['termurah', 'tercepat', 'aman', 'legal', 'resmi', 'instan', 'kilat'];
-
-        foreach ($action_variations as $action) {
-            foreach ($adjective_variations as $adjective) {
-                $base_slugs[] = slugify("{$action} {$target_item} {$target_segment} {$adjective}");
-            }
-        }
-    }
-
-    if (empty($base_slugs)) {
+    if ($segment_type !== 'game') {
         return [];
     }
 
-    $counter = 1;
-    while (count($final_slug_list) < $max_urls) {
-        $current_base_slug = $base_slugs[($counter - 1) % count($base_slugs)];
-        $unique_slug = "{$current_base_slug}-a{$counter}";
-        $full_path = "{$segment_dir}/{$unique_slug}";
-        $final_slug_list[] = $full_path;
-        $counter++;
+    $game_slug = slugify($target_segment);
+    $item_name = $games_list[$target_segment] ?? 'item';
+    $item_slug = slugify($item_name);
+
+    // --- Daftar Kata Kunci ---
+    $aksi_list = ['top up', 'beli', 'isi ulang'];
+    $keunggulan_list = ['terpercaya', 'termurah', 'online', 'legal'];
+    $penawaran_list = ['voucher', 'promo', 'diskon'];
+    $pencarian_tempat_list = ['situs', 'website', 'cara'];
+
+    // === POLA AKSI ===
+    // Aksi + Game
+    foreach ($aksi_list as $aksi) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-{$game_slug}"; }
+    // aksi + game + toko
+    foreach ($aksi_list as $aksi) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-{$game_slug}-di-" . slugify($store); }}
+    // aksi + game + keunggulan
+    foreach ($aksi_list as $aksi) { foreach ($keunggulan_list as $keunggulan) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-{$game_slug}-" . slugify($keunggulan); }}
+    // aksi + game + keunggulan + toko
+    foreach ($aksi_list as $aksi) { foreach ($keunggulan_list as $keunggulan) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-{$game_slug}-" . slugify($keunggulan) . "-di-" . slugify($store); }}}
+    // aksi + item + game
+    foreach ($aksi_list as $aksi) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-{$item_slug}-{$game_slug}"; }
+    // aksi + item + game + toko
+    foreach ($aksi_list as $aksi) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-{$item_slug}-{$game_slug}-di-" . slugify($store); }}
+    // aksi + item + game + keunggulan
+    foreach ($aksi_list as $aksi) { foreach ($keunggulan_list as $keunggulan) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-{$item_slug}-{$game_slug}-" . slugify($keunggulan); }}
+    // aksi + item + game + keunggulan + toko
+    foreach ($aksi_list as $aksi) { foreach ($keunggulan_list as $keunggulan) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-{$item_slug}-{$game_slug}-" . slugify($keunggulan) . "-di-" . slugify($store); }}}
+    // aksi + penawaran + item + game
+    foreach ($aksi_list as $aksi) { foreach ($penawaran_list as $penawaran) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-" . slugify($penawaran) . "-{$item_slug}-{$game_slug}"; }}
+    // aksi + penawaran + item + game + toko
+    foreach ($aksi_list as $aksi) { foreach ($penawaran_list as $penawaran) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-" . slugify($penawaran) . "-{$item_slug}-{$game_slug}-di-" . slugify($store); }}}
+    // aksi + penawaran + item + game + keunggulan + toko
+    foreach ($aksi_list as $aksi) { foreach ($penawaran_list as $penawaran) { foreach ($keunggulan_list as $keunggulan) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($aksi) . "-" . slugify($penawaran) . "-{$item_slug}-{$game_slug}-" . slugify($keunggulan) . "-di-" . slugify($store); }}}}
+
+    // === POLA ITEM ===
+    // item + game
+    $urls[] = "{$game_slug}/{$item_slug}-{$game_slug}";
+    // item + game + toko
+    foreach ($stores_list as $store) { $urls[] = "{$game_slug}/{$item_slug}-{$game_slug}-di-" . slugify($store); }
+    // item + game + keunggulan
+    foreach ($keunggulan_list as $keunggulan) { $urls[] = "{$game_slug}/{$item_slug}-{$game_slug}-" . slugify($keunggulan); }
+    // item + game + keunggulan + toko
+    foreach ($keunggulan_list as $keunggulan) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/{$item_slug}-{$game_slug}-" . slugify($keunggulan) . "-di-" . slugify($store); }}
+
+    // === POLA GAME ===
+    // game + toko
+    foreach ($stores_list as $store) { $urls[] = "{$game_slug}/{$game_slug}-di-" . slugify($store); }
+
+    // === POLA PENAWARAN ===
+    // penawaran + game
+    foreach ($penawaran_list as $penawaran) { $urls[] = "{$game_slug}/" . slugify($penawaran) . "-{$game_slug}"; }
+    // penawaran + game + toko
+    foreach ($penawaran_list as $penawaran) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($penawaran) . "-{$game_slug}-di-" . slugify($store); }}
+    // penawaran + item + game
+    foreach ($penawaran_list as $penawaran) { $urls[] = "{$game_slug}/" . slugify($penawaran) . "-{$item_slug}-{$game_slug}"; }
+    // penawaran + item + game + toko
+    foreach ($penawaran_list as $penawaran) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($penawaran) . "-{$item_slug}-{$game_slug}-di-" . slugify($store); }}
+    // penawaran + item + game + keunggulan
+    foreach ($penawaran_list as $penawaran) { foreach ($keunggulan_list as $keunggulan) { $urls[] = "{$game_slug}/" . slugify($penawaran) . "-{$item_slug}-{$game_slug}-" . slugify($keunggulan); }}
+    // penawaran + item + game + keunggulan + toko
+    foreach ($penawaran_list as $penawaran) { foreach ($keunggulan_list as $keunggulan) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($penawaran) . "-{$item_slug}-{$game_slug}-" . slugify($keunggulan) . "-di-" . slugify($store); }}}
+
+    // === POLA PENCARIAN TEMPAT ===
+    foreach ($pencarian_tempat_list as $tempat) {
+        foreach ($aksi_list as $aksi) {
+            // Pencarian Tempat + Aksi + Game
+            $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-{$game_slug}";
+            // Pencarian Tempat + aksi + game + toko
+            foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-{$game_slug}-di-" . slugify($store); }
+            // Pencarian Tempat + aksi + game + keunggulan
+            foreach ($keunggulan_list as $keunggulan) { $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-{$game_slug}-" . slugify($keunggulan); }
+            // Pencarian Tempat + aksi + game + keunggulan + toko
+            foreach ($keunggulan_list as $keunggulan) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-{$game_slug}-" . slugify($keunggulan) . "-di-" . slugify($store); }}
+            // Pencarian Tempat + aksi + item + game
+            $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-{$item_slug}-{$game_slug}";
+            // Pencarian Tempat + aksi + item + game + toko
+            foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-{$item_slug}-{$game_slug}-di-" . slugify($store); }
+            // Pencarian Tempat + aksi + item + game + keunggulan
+            foreach ($keunggulan_list as $keunggulan) { $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-{$item_slug}-{$game_slug}-" . slugify($keunggulan); }
+            // Pencarian Tempat + aksi + item + game + keunggulan + toko
+            foreach ($keunggulan_list as $keunggulan) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-{$item_slug}-{$game_slug}-" . slugify($keunggulan) . "-di-" . slugify($store); }}
+            // Pencarian Tempat + aksi + penawaran + item + game
+            foreach ($penawaran_list as $penawaran) { $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-" . slugify($penawaran) . "-{$item_slug}-{$game_slug}"; }
+            // Pencarian Tempat + aksi + penawaran + item + game + toko
+            foreach ($penawaran_list as $penawaran) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-" . slugify($penawaran) . "-{$item_slug}-{$game_slug}-di-" . slugify($store); }}
+            // Pencarian Tempat + aksi + penawaran + item + game + keunggulan + toko
+            foreach ($penawaran_list as $penawaran) { foreach ($keunggulan_list as $keunggulan) { foreach ($stores_list as $store) { $urls[] = "{$game_slug}/" . slugify($tempat) . "-" . slugify($aksi) . "-" . slugify($penawaran) . "-{$item_slug}-{$game_slug}-" . slugify($keunggulan) . "-di-" . slugify($store); }}}
+        }
     }
 
-    return $final_slug_list;
+    // Menghapus duplikat untuk memastikan setiap URL unik
+    return array_unique($urls);
 }
 
 function get_all_seo_slugs(): array
@@ -852,3 +913,4 @@ HTML;
 }
 
 ?>
+
