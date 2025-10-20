@@ -621,77 +621,70 @@ function generate_rich_content(string $domain, string $type, string $game, strin
 
 function generate_seo_meta(string $domain, string $uri, array $games_list, array $stores_list): array
 {
+    $uri_parts = explode('/', trim($uri, '/'));
+    $game_slug = $uri_parts[0] ?? '';
+    $main_slug = $uri_parts[1] ?? '';
+
     $current_game_name = null;
     $current_item_name = null;
     $current_store_name = null;
-    $slug_with_suffix = basename($uri);
-    $slug = preg_replace('/-a\d+$/', '', $slug_with_suffix);
-    $uri_parts = explode('/', $uri);
-    $segment_dir = $uri_parts[0];
-    $slug_content = $uri_parts[1] ?? $slug;
-    $is_store_specific_page = false;
-    $segment_type = 'game';
-    $target_segment = '';
-    foreach ($stores_list as $store_name_check) {
-        if (slugify($store_name_check) === $segment_dir) {
-            $is_store_specific_page = true;
-            $current_store_name = $store_name_check;
-            $segment_type = 'store';
-            $target_segment = $store_name_check;
+
+    // 1. Temukan nama game dan item dari direktori URL
+    foreach ($games_list as $game => $item) {
+        if (slugify($game) === $game_slug) {
+            $current_game_name = $game;
+            $current_item_name = $item;
             break;
         }
     }
-    if ($is_store_specific_page) {
-        foreach($games_list as $game => $item) {
-            if(strpos($slug_content, slugify($game)) !== false) {
-                $current_game_name = $game;
-                $current_item_name = $item;
-                break;
-            }
-        }
-        if (!$current_game_name) {
-            $current_game_name = array_rand($games_list);
-            $current_item_name = $games_list[$current_game_name];
-        }
-    } else {
-        foreach($games_list as $game => $item) {
-            if(slugify($game) === $segment_dir) {
-                $current_game_name = $game;
-                $current_item_name = $item;
-                $target_segment = $game;
-                break;
-            }
-        }
-        if (!$current_game_name) {
-            $current_game_name = array_rand($games_list);
-            $current_item_name = $games_list[$current_game_name];
-            $target_segment = $current_game_name;
+
+    if (!$current_game_name) {
+        return ['title' => 'Halaman Tidak Ditemukan', 'description' => 'Konten yang Anda cari tidak tersedia.', 'game_name' => null, 'item_name' => null, 'store_name' => null, 'is_store_specific' => false, 'segment_dir' => '', 'segment_type' => '', 'target_segment' => ''];
+    }
+
+    // 2. Temukan nama toko dari dalam slug URL
+    foreach ($stores_list as $store) {
+        if (strpos($main_slug, slugify($store)) !== false) {
+            $current_store_name = $store;
+            break;
         }
     }
-    $keyword_from_slug = str_replace('-', ' ', $slug);
-    $featured_stores = array_rand(array_flip($GLOBALS['stores_list']), 3);
-    $featured_store_1_name = $featured_stores[0];
-    $featured_store_2_name = $featured_stores[1];
+
+    $keyword_from_slug = ucwords(str_replace('-', ' ', $main_slug));
     $domain_key = parse_url($domain, PHP_URL_HOST);
-    
-    if ($is_store_specific_page) {
-        $title_template = "{Top Up|Beli|Harga} {$current_item_name} {$current_game_name} di {$current_store_name} | {Resmi|Terpercaya|Termurah} {& Instan|}";
-        $description_template = "{Dapatkan|Beli} {$current_item_name} {$current_game_name} {langsung|secara mudah} melalui {$current_store_name}. {Terjamin 100% aman|Proses dijamin aman}, {proses instan|pengiriman cepat}, dan harga {paling murah|lebih hemat} dibanding {$featured_store_2_name}. Beli sekarang dan {nikmati|dapatkan} bonus eksklusif!";
+    srand(crc32($domain_key . $uri));
+
+    // 3. Buat judul dan deskripsi berdasarkan apakah nama toko ditemukan
+    if ($current_store_name) {
+        // Jika URL mengandung nama toko (contoh: "...-di-unipin")
+        $title_template = "{Top Up|Beli} {$current_game_name} | {$current_store_name}";
+        $description_template = "Dapatkan harga {$current_item_name} {$current_game_name} terbaik di {$current_store_name}. Proses top up {cepat|instan}, 100% {aman dan legal|resmi dan terpercaya}. Beli sekarang!";
+        
+        $title = spin($title_template);
+        $description = spin($description_template);
+
     } else {
-        $title_template = "{$keyword_from_slug} | {Top Up|Beli} {$current_item_name} {$current_game_name} {Termurah|Terpercaya} " . date('Y');
-        $description_template = "Cari tempat top up {$current_item_name} {$current_game_name} {paling murah|terpercaya}? Dapatkan harga {terbaik|spesial} di sini, {lebih hemat dari|alternatif selain} {$featured_store_1_name} dan {$featured_store_2_name}. Proses instan, 100% aman dan legal.";
+        // Jika URL bersifat umum (tidak ada nama toko)
+        $title_template = "{$keyword_from_slug} | {Harga Termurah|Promo Spesial} " . date('Y');
+        $description_template = "Cari tempat top up {$current_item_name} {$current_game_name} {paling murah|terpercaya}? Dapatkan harga {terbaik|spesial} di sini. Proses instan, 100% aman dan legal.";
+
+        $title = spin($title_template);
+        $description = spin($description_template);
     }
-    
-    srand(crc32($domain_key . $uri)); // Seed randomizer agar konsisten per URL
-    $title = spin($title_template);
-    $description = spin($description_template);
+
     srand(); // Reset seed
 
     return [
-        'title' => $title, 'description' => $description, 'uri' => $uri,
-        'game_name' => $current_game_name, 'item_name' => $current_item_name, 'store_name' => $current_store_name,
-        'is_store_specific' => $is_store_specific_page,
-        'segment_dir' => $segment_dir, 'segment_type' => $segment_type, 'target_segment' => $target_segment
+        'title' => $title,
+        'description' => $description,
+        'uri' => $uri,
+        'game_name' => $current_game_name,
+        'item_name' => $current_item_name,
+        'store_name' => $current_store_name,
+        'is_store_specific' => (bool)$current_store_name,
+        'segment_dir' => $game_slug,
+        'segment_type' => 'game',
+        'target_segment' => $current_game_name
     ];
 }
 
@@ -910,5 +903,6 @@ HTML;
 }
 
 ?>
+
 
 
