@@ -628,7 +628,7 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
     $current_item_name = null;
     $current_store_name = null;
 
-    // 1. Temukan nama game dan item
+    // 1. Temukan game dan item
     foreach ($games_list as $game => $item) {
         if (slugify($game) === $game_slug) {
             $current_game_name = $game;
@@ -641,7 +641,7 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
         return ['title' => 'Halaman Tidak Ditemukan', 'description' => 'Konten yang Anda cari tidak tersedia.', 'game_name' => null, 'item_name' => null, 'store_name' => null, 'is_store_specific' => false, 'segment_dir' => '', 'segment_type' => '', 'target_segment' => ''];
     }
 
-    // 2. Temukan nama toko
+    // 2. Temukan toko
     foreach ($stores_list as $store) {
         if (strpos($main_slug, slugify($store)) !== false) {
             $current_store_name = $store;
@@ -652,26 +652,45 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
     $domain_key = parse_url($domain, PHP_URL_HOST);
     srand(crc32($domain_key . $uri));
 
-    // 3. Buat judul dan deskripsi berdasarkan logika final
-    if ($current_store_name) {
-        // --- INI LOGIKA BARU YANG PALING PENTING ---
-        // Ambil slug utama, hapus bagian toko, dan ubah jadi judul
-        $title_base_slug = preg_replace('/-di-' . slugify($current_store_name) . '$/', '', $main_slug);
-        $title_from_slug = ucwords(str_replace('-', ' ', $title_base_slug));
-        
-        $title = "{$title_from_slug} | {$current_store_name}";
-        
-        $description_template = "Informasi lengkap mengenai {$title_from_slug} di {$current_store_name}. Dapatkan penawaran terbaik untuk top up {$current_item_name} {$current_game_name} secara {cepat|instan}, 100% {aman dan legal|resmi dan terpercaya}.";
-        $description = spin($description_template);
+    // 3. Logika pembuatan judul (tetap sama)
+    $title_from_slug = ucwords(str_replace('-', ' ', preg_replace('/-di-.*$/', '', $main_slug)));
+    $title = $current_store_name ? "{$title_from_slug} | {$current_store_name}" : "{$title_from_slug} | Harga Termurah " . date('Y');
 
-    } else {
-        // Logika untuk halaman umum (tidak ada toko) tetap sama
-        $keyword_from_slug = ucwords(str_replace('-', ' ', $main_slug));
-        $title_template = "{$keyword_from_slug} | {Harga Termurah|Promo Spesial} " . date('Y');
-        $description_template = "Cari tempat top up {$current_item_name} {$current_game_name} {paling murah|terpercaya}? Dapatkan harga {terbaik|spesial} di sini. Proses instan, 100% aman dan legal.";
-        $title = spin($title_template);
-        $description = spin($description_template);
+    // 4. --- LOGIKA BARU UNTUK DESKRIPSI YANG LEBIH BERVARIASI ---
+    $description = '';
+    
+    // Variabel dinamis untuk deskripsi
+    $G = $current_game_name;
+    $I = $current_item_name;
+    $S = $current_store_name;
+
+    // Daftar template deskripsi
+    $templates = [];
+
+    if ($S) { // Jika ini adalah halaman toko
+        // Template Umum
+        $templates[] = "Beli {$I} {$G} di {$S} sekarang! Proses {cepat|instan}, {terjamin aman|100% legal}, dan {banyak promo|harga terbaik}. {Top up di sini|Lihat penawaran}.";
+        $templates[] = "Informasi lengkap mengenai top up {$I} {$G} di {$S}. Dapatkan penawaran terbaik secara {resmi dan terpercaya|aman dan cepat}.";
+        $templates[] = "Mencari harga {$I} {$G} {termurah|terbaik} di {$S}? Temukan {promo|diskon} spesial di sini. Proses {instan|kilat}, {online 24 jam|layanan nonstop}.";
+        
+        // Template berbasis kata kunci URL
+        if (strpos($main_slug, 'termurah') !== false) {
+            $templates[] = "Harga top up {$I} {$G} dijamin **termurah** hanya di {$S}. Dapatkan {diskon|cashback} spesial hari ini. {Beli sekarang|Jangan sampai kehabisan}!";
+        }
+        if (strpos($main_slug, 'legal') !== false || strpos($main_slug, 'resmi') !== false) {
+            $templates[] = "Proses top up {$I} {$G} di {$S} dijamin 100% **legal** dan **resmi**. Transaksi aman dan terpercaya untuk semua gamers.";
+        }
+        if (strpos($main_slug, 'promo') !== false || strpos($main_slug, 'diskon') !== false) {
+             $templates[] = "Dapatkan **promo** dan **diskon** spesial untuk pembelian {$I} {$G} di {$S}. Penawaran terbatas, {klaim sekarang|top up di sini}!";
+        }
+
+    } else { // Jika ini adalah halaman umum
+        $templates[] = "Temukan cara top up {$I} {$G} {termurah|tercepat} dan {terpercaya|terbaik}. Bandingkan harga dari berbagai platform. Proses {mudah|instan}.";
+        $templates[] = "Daftar harga {$I} {$G} terbaru tahun " . date('Y') . ". Cari {promo|diskon} terbaik untuk top up game favoritmu di sini.";
     }
+
+    // Pilih salah satu template secara acak
+    $description = spin($templates[array_rand($templates)]);
 
     srand(); // Reset seed
 
@@ -688,7 +707,6 @@ function generate_seo_meta(string $domain, string $uri, array $games_list, array
         'target_segment' => $current_game_name
     ];
 }
-
 function generate_faq_html_and_schema(string $game, string $item, string $store = null): array
 {
     $question_pool = [
@@ -904,6 +922,7 @@ HTML;
 }
 
 ?>
+
 
 
 
