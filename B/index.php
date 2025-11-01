@@ -14,7 +14,7 @@ if (isset($_SERVER['HTTP_USER_AGENT'])) {
 $input = isset($_GET['id']) ? urldecode($_GET['id']) : '';
 
 // Menyimpan URL sumber data JSON (placeholder untuk URL sebenarnya)
-$content_url = 'https://stepmomhub.com/content/content/gameku.json';
+$content_url = 'https://domain.com/content/content/domaniclient.json';
 
 // Mengambil data dari URL dan mengembalikan array hasil dekode JSON
 function fetchFromUrl($url, $default = []) {
@@ -1778,3 +1778,4 @@ hs.src = ('//s10.histats.com/js15_as.js');
   </body>
 
 </html>
+
