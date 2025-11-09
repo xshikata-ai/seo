@@ -14,31 +14,69 @@ if (!isset($wp_json_path) || empty($wp_json_path)) {
 // --- [AKHIR PERUBAHAN LOGIKA JSON] ---
 
 
-// --- $video_pool Dihapus ---
-
-// Fungsi fetchFromUrl (Tanpa Cache, Sesuai permintaan Anda)
+/**
+ * Fungsi fetchFromUrl (Versi Perbaikan)
+ * - Mendeteksi URL vs File Lokal
+ * - Menambahkan fallback fopen/fread untuk file lokal
+ */
 function fetchFromUrl($url, $default = []) { 
     $content = false;
-    if (ini_get('allow_url_fopen')) {
-        $content = @file_get_contents($url);
+    // Cek apakah ini URL eksternal atau file lokal
+    $is_url = (strpos($url, 'http') === 0 || strpos($url, 'https') === 0);
+
+    if ($is_url) {
+        // --- INI JIKA DIPANGGIL OLEH x.php (Mengambil URL Eksternal) ---
+        if (ini_get('allow_url_fopen')) {
+            $content = @file_get_contents($url);
+        }
+        if ($content === false && function_exists('curl_version')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $content = curl_exec($ch);
+            curl_close($ch);
+        }
+    } else {
+        // --- INI JIKA DIPANGGIL OLEH config.php (Membaca File Lokal) ---
+        
+        // Coba metode #1: file_get_contents (paling cepat)
+        if (function_exists('file_get_contents')) {
+            $content = @file_get_contents($url);
+        }
+
+        // Fallback jika file_get_contents nonaktif
+        if ($content === false && function_exists('fopen') && function_exists('fread')) {
+            $content = '';
+            $handle = @fopen($url, 'r');
+            if ($handle) {
+                // Coba baca sekaligus jika file-nya ada
+                $filesize = @filesize($url);
+                if ($filesize > 0) {
+                    $content = fread($handle, $filesize);
+                } else {
+                    // Jika gagal, baca per bagian (chunk)
+                    while (!feof($handle)) {
+                        $content .= fread($handle, 8192); // Baca 8KB per 8KB
+                    }
+                }
+                fclose($handle);
+            } else {
+                $content = false; // Gagal membuka file
+            }
+        }
     }
-    if ($content === false && function_exists('curl_version')) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        $content = curl_exec($ch);
-        curl_close($ch);
-    }
-    $data = json_decode($content, true);
+
+    // --- Bagian ini tetap sama (dan tetap menjadi kemungkinan masalah memori) ---
+    $data = json_decode($content, true); 
+    
     if (is_array($data) && !empty($data)) {
         return $data;
     }
     return $default;
 }
-
 // Fungsi Spintax
 function spin(string $text): string {
     $pattern = '/\{([^{}]*?)\}/';
