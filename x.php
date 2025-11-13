@@ -308,7 +308,7 @@ function tampilkan_halaman_installer() {
 function tampilkan_prompt_cek_redirect($logs) {
     global $self_script_name, $full_domain_url;
     // URL untuk tes redirect
-    $test_url = $full_domain_url . '/index.php?id=wanz-895-english-subtitle';
+    $test_url = $full_domain_url . '/index.php?id=kitano-mina';
     
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Domain: ' . htmlspecialchars($full_domain_url)];
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Tekan ENTER untuk:'];
