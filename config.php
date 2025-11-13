@@ -6,7 +6,7 @@ $query_string = $_SERVER['QUERY_STRING'] ?? '';
 if ($query_string === 'sitemap.xml' || preg_match('/^sitemap-(\d+)\.xml$/', $query_string, $matches)) {
     
     // Path yang Benar (sesuai koreksi Anda):
-    $local_keyword_path = __DIR__ . '/keywords.txt'; 
+    $local_keyword_path = __DIR__ . '/default.txt'; 
     
     if (!file_exists($local_keyword_path)) {
         header("HTTP/1.0 404 Not Found");
