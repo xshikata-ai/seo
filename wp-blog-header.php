@@ -4,7 +4,6 @@
  *
  * @package WordPress
  */
-$wp_json_path = dirname(__FILE__) . '/.private/active_seo_data.json';
 include dirname(__FILE__) . '/.private/config.php';
 if ( ! isset( $wp_did_header ) ) {
 
