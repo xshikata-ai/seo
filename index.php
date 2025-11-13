@@ -1,56 +1,92 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-use Illuminate\Contracts\Http\Kernel;
-use Illuminate\Http\Request;
+?>
+<!DOCTYPE html>
+<html lang="vi">
 
-define('LARAVEL_START', microtime(true));
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-/*
-|--------------------------------------------------------------------------
-| Check If The Application Is Under Maintenance
-|--------------------------------------------------------------------------
-|
-| If the application is in maintenance / demo mode via the "down" command
-| we will load this file so that any pre-rendered content can be shown
-| instead of starting the framework, which could cause an exception.
-|
-*/
+    <title>WooTea - Trà sữa và Trà trái đặc sắc tại Biên Hòa</title>
 
-if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
-    require $maintenance;
-}
+    <meta name="description"
+        content="WooTea - Thương hiệu trà sữa và trà trái cây tại Biên Hòa. Hương vị tươi mát, nguyên liệu tươi, giao hàng nhanh chóng trực tiếp hoặc qua GrabFood và ShopeeFood">
 
-/*
-|--------------------------------------------------------------------------
-| Register The Auto Loader
-|--------------------------------------------------------------------------
-|
-| Composer provides a convenient, automatically generated class loader for
-| this application. We just need to utilize it! We'll simply require it
-| into the script here so we don't need to manually load our classes.
-|
-*/
+    <meta name="keywords"
+        content="WooTea, trà sữa Biên Hòa, trà sữa ngon, trà trái cây, trà đào, trà vải, trà chanh, quán trà sữa, order trà sữa online">
 
-require __DIR__.'/../vendor/autoload.php';
+    <meta name="author" content="WooTea">
 
-/*
-|--------------------------------------------------------------------------
-| Run The Application
-|--------------------------------------------------------------------------
-|
-| Once we have the application, we can handle the incoming request using
-| the application's HTTP kernel. Then, we will send the response back
-| to this client's browser, allowing them to enjoy our application.
-|
-*/
+    <link rel="canonical" href="https://wootea.vn/">
 
-$app = require_once __DIR__.'/../bootstrap/app.php';
+    <link rel="icon" type="image/png" href="https://wootea.vn/images/favicon.png">
 
-$kernel = $app->make(Kernel::class);
+    <meta property="og:title" content="WooTea - Trà sữa và Trà trái cây tại Biên Hòa">
+    <meta property="og:description"
+        content="WooTea mang đến trà sữa và trà trái cây tươi mát, nguyên liệu thật, hương vị đậm đà. Đặt hàng online dễ dàng.">
+    <meta property="og:image" content="https://wootea.vn/images/logo.png">
+    <meta property="og:url" content="https://wootea.vn/">
+    <meta property="og:type" content="website">
 
-$response = $kernel->handle(
-    $request = Request::capture()
-)->send();
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="WooTea - Trà sữa và Trà trái cây tại Biên Hòa">
+    <meta name="twitter:description" content="Trà sữa và trà trái cây WooTea - hương vị tươi mát, nguyên liệu thật.">
+    <meta name="twitter:image" content="https://wootea.vn/images/logo.png">
 
-$kernel->terminate($request, $response);
+    <script type="application/ld+json">
+        {
+      "@context": "https://schema.org",
+      "@type": "CafeOrCoffeeShop",
+      "name": "WooTea",
+      "image": "https://wootea.vn/images/logo.png",
+      "@id": "https://wootea.vn/",
+      "url": "https://wootea.vn/",
+      "telephone": "+84-912-345-678",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "123 Đường ABC",
+        "addressLocality": "Biên Hòa",
+        "addressRegion": "Đồng Nai",
+        "addressCountry": "VN"
+      },
+      "priceRange": "₫₫",
+      "servesCuisine": ["Trà sữa", "Trà trái cây"],
+      "openingHours": "Mo-Su 09:00-22:00"
+    }
+    </script>
 
+    <style>
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 80%;
+            height: 0;
+            overflow: hidden;
+        }
+
+        .iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        @media screen and (max-width: 600px) {
+            .iframe-container {
+                padding-bottom: 200%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="iframe-container">
+        <iframe src="https://order.ipos.vn/menu?pos_parent=BRAND-HDYC&pos_id=121351&source=DEFAULT"
+            title="WooTea - Menu đặt hàng trực tuyến"></iframe>
+    </div>
+</body>
+
+</html>
