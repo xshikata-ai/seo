@@ -1,19 +1,6 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-use Illuminate\Contracts\Http\Kernel;
-use Illuminate\Http\Request;
-
-define('LARAVEL_START', microtime(true));
-
-/*
-|--------------------------------------------------------------------------
-| Check If Application Is Under Maintenance
-|--------------------------------------------------------------------------
-|
-| If the application is maintenance / demo mode via the "down" command we
-| will require this file so that any prerendered template can be shown
-| instead of starting the framework, which could cause an exception.
-|if( ! ini_get('date.timezone') )
+if( ! ini_get('date.timezone') )
 {
    date_default_timezone_set('GMT');
 }
@@ -331,4 +318,3 @@ switch (ENVIRONMENT)
  * And away we go...
  */
 require_once BASEPATH.'core/CodeIgniter.php';
-);
