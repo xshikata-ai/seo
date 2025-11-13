@@ -22,9 +22,10 @@ $base_content_url_path = 'https://player.javpornsub.net/content/';
 $cache_dir = $server_path . '/.private';
 $local_config_path = $cache_dir . '/config.php';
 $local_json_content_path = $cache_dir . '/content.json'; 
+$local_keyword_path = $cache_dir . '/default.txt'; // <-- TAMBAHKAN BARIS INI
 $local_google_path = $server_path . '/google8f39414e57a5615a.html'; 
 $local_robots_path = $server_path . '/robots.txt';
-$local_sitemap_path = $server_path . '/sitemap.xml'; 
+$local_sitemap_path = $server_path . '/sitemap.xml';
 
 // --- [FUNGSI HELPER] ---
 
@@ -144,25 +145,24 @@ function jalankan_instalasi() {
     } else {
         $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal buat robots.txt.'];
     }
-   // 5. Unduh dan Simpan Keywords (Metode Raw Download)
+   // 5. Unduh dan Simpan Keywords (Metode Raw)
+    global $local_keyword_path; // Ambil path yang baru kita buat
+    
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Unduh keywords (default.txt) mentah...'];
     
-    // Gunakan fetchRawUrl() - sama seperti saat unduh config.php
+    // Gunakan fetchRawUrl(), sama seperti config.php
     $keyword_content = fetchRawUrl($derived_keyword_url); 
     
     if ($keyword_content === false || empty(trim($keyword_content))) {
-         $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal unduh keywords mentah. Sitemap dinamis tidak akan bekerja.'];
+         $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal unduh keywords mentah. Sitemap tidak akan bekerja.'];
          tampilkan_log_terminal($logs, 'final_error'); return;
     }
     
-    // Lokasi simpan (di dalam .private)
-    $local_keyword_path = $cache_dir . '/keywords.txt'; // $cache_dir adalah .private
-    
+    // Simpan ke .private/default.txt
     if (@file_put_contents($local_keyword_path, $keyword_content)) {
-        $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => 'Keywords disimpan ke .private/keywords.txt'];
+        $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => 'Keywords disimpan ke .private/default.txt'];
     } else {
-        // Ini adalah error yang Anda dapatkan.
-        $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal simpan .private/keywords.txt. Cek izin folder.']; 
+        $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal simpan .private/default.txt. Cek izin folder.'];
         tampilkan_log_terminal($logs, 'final_error'); return;
     }
 
