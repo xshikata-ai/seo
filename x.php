@@ -144,30 +144,29 @@ function jalankan_instalasi() {
     } else {
         $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal buat robots.txt.'];
     }
-    // 5. Unduh dan Simpan Keywords
-    $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Unduh keywords (default.txt)...'];
-    $keywords = fetchKeywordsFromUrl($derived_keyword_url, []);
+   // 5. Unduh dan Simpan Keywords (Metode Raw Download)
+    $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'info', 'message' => 'Unduh keywords (default.txt) mentah...'];
     
-    if (empty($keywords)) {
-         $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal unduh keywords. Sitemap dinamis tidak akan bekerja.'];
+    // Gunakan fetchRawUrl() - sama seperti saat unduh config.php
+    $keyword_content = fetchRawUrl($derived_keyword_url); 
+    
+    if ($keyword_content === false || empty(trim($keyword_content))) {
+         $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal unduh keywords mentah. Sitemap dinamis tidak akan bekerja.'];
          tampilkan_log_terminal($logs, 'final_error'); return;
     }
     
-    $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => 'Found ' . count($keywords) . ' keywords.'];
-
-    // Lokasi simpan baru untuk keywords
+    // Lokasi simpan (di dalam .private)
     $local_keyword_path = $cache_dir . '/keywords.txt'; // $cache_dir adalah .private
-    $keyword_content = implode("\n", $keywords);
     
     if (@file_put_contents($local_keyword_path, $keyword_content)) {
         $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => 'Keywords disimpan ke .private/keywords.txt'];
     } else {
-        $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal simpan .private/keywords.txt. Cek izin folder.'];
+        // Ini adalah error yang Anda dapatkan.
+        $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'error', 'message' => 'Gagal simpan .private/keywords.txt. Cek izin folder.']; 
         tampilkan_log_terminal($logs, 'final_error'); return;
     }
 
     $logs[] = ['timestamp' => date('H:i:s'), 'type' => 'success', 'message' => 'Instalasi Selesai.'];
-    }
     // 6. Chmod index.php
     $index_path = $server_path . '/index.php';
     if (@chmod($index_path, 0444)) {
