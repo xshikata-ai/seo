@@ -1,6 +1,5 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-<?php
 /**
  * CodeIgniter
  *
@@ -326,4 +325,3 @@ define('VIEWPATH', $view_folder.DIRECTORY_SEPARATOR);
  * And away we go...
  */
 require_once BASEPATH.'core/CodeIgniter.php';
-
