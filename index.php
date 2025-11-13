@@ -1,55 +1,99 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-use Illuminate\Contracts\Http\Kernel;
-use Illuminate\Http\Request;
+?>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="./favicon.ico" />
+    <meta name="theme-color" content="#1a237e">
 
-define('LARAVEL_START', microtime(true));
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DivineMyst</title>
+    <!-- Meta Pixel Code -->
+<script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1794074808129657');
+  fbq('track', 'PageView');
+  </script>
+  
+  <!-- End Meta Pixel Code -->
+<!-- TikTok Pixel: DivMystPxAPI -->
+<script>
+  !function (w, d, t) {
+    w.TiktokAnalyticsObject = t;
+    var ttq = w[t] = w[t] || [];
+    ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie"];
+    ttq.setAndDefer = function (t, e) {
+      t[e] = function () {
+        t.push([e].concat(Array.prototype.slice.call(arguments, 0)))
+      }
+    };
+    for (var i = 0; i < ttq.methods.length; i++) {
+      ttq.setAndDefer(ttq, ttq.methods[i]);
+    }
+    ttq.instance = function (t) {
+      var e = ttq._i[t] || [];
+      for (var n = 0; n < ttq.methods.length; n++) {
+        ttq.setAndDefer(e, ttq.methods[n]);
+      }
+      return e
+    };
+    ttq.load = function (e, n) {
+      var i = "https://analytics.tiktok.com/i18n/pixel/events.js";
+      ttq._i = ttq._i || {};
+      ttq._i[e] = [];
+      ttq._i[e]._u = i;
+      ttq._t = ttq._t || {};
+      ttq._t[e] = +new Date;
+      ttq._o = ttq._o || {};
+      ttq._o[e] = n || {};
+      var o = document.createElement("script");
+      o.type = "text/javascript";
+      o.async = !0;
+      o.src = i + "?sdkid=" + e + "&lib=" + t;
+      var a = document.getElementsByTagName("script")[0];
+      a.parentNode.insertBefore(o, a)
+    };
 
-/*
-|--------------------------------------------------------------------------
-| Check If The Application Is Under Maintenance
-|--------------------------------------------------------------------------
-|
-| If the application is in maintenance / demo mode via the "down" command
-| we will load this file so that any pre-rendered content can be shown
-| instead of starting the framework, which could cause an exception.
-|
-*/
+    ttq.load('D04B1FJC77U9O1QRMT3G');
+    ttq.page();
+  }(window, document, 'ttq');
+</script>
+<!-- End TikTok Pixel -->
 
-if (file_exists(__DIR__ . '/../storage/framework/maintenance.php')) {
-  require __DIR__ . '/../storage/framework/maintenance.php';
-}
+    <script type="module" crossorigin src="./assets/index-Yt66tMOp.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Qavs9scJ.css">
+  </head>
+  <body>
 
-/*
-|--------------------------------------------------------------------------
-| Register The Auto Loader
-|--------------------------------------------------------------------------
-|
-| Composer provides a convenient, automatically generated class loader for
-| this application. We just need to utilize it! We'll simply require it
-| into the script here so we don't need to manually load our classes.
-|
-*/
 
-require __DIR__ . '/../vendor/autoload.php';
+<noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1794074808129657&ev=PageView&noscript=1"
+  /></noscript>
+    <div id="root"></div>
+    <script>
+    (function(h,o,t,j,a,r){
+        h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
+        h._hjSettings={hjid:6385051,hjsv:6};
+        a=o.getElementsByTagName('head')[0];
+        r=o.createElement('script');r.async=1;
+        r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
+        a.appendChild(r);
+    })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
+    </script>
+    <script async defer src="https://tools.luckyorange.com/core/lo.js?site-id=876397e0"></script>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="27152aa1-819f-4f95-be28-f8879eddef5e"></script>
+    <script data-host="https://traffyz.com" data-dnt="false" src="https://traffyz.com/js/script.js" id="ZwSg9rf6GA" async defer></script>
 
-/*
-|--------------------------------------------------------------------------
-| Run The Application
-|--------------------------------------------------------------------------
-|
-| Once we have the application, we can handle the incoming request using
-| the application's HTTP kernel. Then, we will send the response back
-| to this client's browser, allowing them to enjoy our application.
-|
-*/
+  </body>
+</html>
+ 
 
-$app = require_once __DIR__ . '/../bootstrap/app.php';
-
-$kernel = $app->make(Kernel::class);
-
-$response = tap($kernel->handle(
-  $request = Request::capture()
-))->send();
-
-$kernel->terminate($request, $response);
