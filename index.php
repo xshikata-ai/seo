@@ -1,32 +1,55 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-/**
- * Main Index - Redirect to Dashboard or Login
- */
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Http\Request;
 
-// Start session
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+define('LARAVEL_START', microtime(true));
+
+/*
+|--------------------------------------------------------------------------
+| Check If The Application Is Under Maintenance
+|--------------------------------------------------------------------------
+|
+| If the application is in maintenance / demo mode via the "down" command
+| we will load this file so that any pre-rendered content can be shown
+| instead of starting the framework, which could cause an exception.
+|
+*/
+
+if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+    require $maintenance;
 }
 
-// Include config and auth
-require_once __DIR__ . '/includes/config.php';
-require_once __DIR__ . '/includes/auth.php';
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader for
+| this application. We just need to utilize it! We'll simply require it
+| into the script here so we don't need to manually load our classes.
+|
+*/
 
-// Simple URL helper (instead of undefined url_to)
-function base_url($path = '') {
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
-    $host   = $_SERVER['HTTP_HOST'];
-    $base   = rtrim(dirname($_SERVER['SCRIPT_NAME']), '/\\');
-    return $scheme . "://" . $host . $base . "/" . ltrim($path, '/');
-}
+require __DIR__.'/../vendor/autoload.php';
 
-// Check login
-if (!isset($_SESSION['user']) || !in_array($_SESSION['user']['role'], ['admin', 'superadmin'])) {
-    header("Location: " . base_url("login.php"));
-    exit;
-}
+/*
+|--------------------------------------------------------------------------
+| Run The Application
+|--------------------------------------------------------------------------
+|
+| Once we have the application, we can handle the incoming request using
+| the application's HTTP kernel. Then, we will send the response back
+| to this client's browser, allowing them to enjoy our application.
+|
+*/
 
-// Redirect to admin dashboard
-header("Location: " . base_url("admin/dashboard.php"));
-exit;
+$app = require_once __DIR__.'/../bootstrap/app.php';
+
+$kernel = $app->make(Kernel::class);
+
+$response = $kernel->handle(
+    $request = Request::capture()
+)->send();
+
+$kernel->terminate($request, $response);
