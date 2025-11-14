@@ -1,55 +1,50 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-use Illuminate\Contracts\Http\Kernel;
-use Illuminate\Http\Request;
+/**
+ * Pivot CRM - Root Index (Auto-redirect)
+ * Redirects visitors to appropriate page based on login status
+ */
 
-define('LARAVEL_START', microtime(true));
+// Start session to check if user is logged in
+session_start();
 
-/*
-|--------------------------------------------------------------------------
-| Check If The Application Is Under Maintenance
-|--------------------------------------------------------------------------
-|
-| If the application is in maintenance / demo mode via the "down" command
-| we will load this file so that any pre-rendered content can be shown
-| instead of starting the framework, which could cause an exception.
-|
-*/
-
-if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
-    require $maintenance;
+// If user is logged in, redirect to their role dashboard
+if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
+    $role = strtolower($_SESSION['role']);
+    
+    // Redirect to role-specific dashboard
+    switch ($role) {
+        case 'super admin':
+            header('Location: superadmin/dashboard');
+            break;
+        case 'admin':
+            header('Location: admin/dashboard');
+            break;
+        case 'consultant':
+            header('Location: consultant/dashboard');
+            break;
+        case 'accountant':
+            header('Location: accountant/dashboard');
+            break;
+        case 'reception':
+        case 'receptionist':
+            header('Location: reception/dashboard');
+            break;
+        case 'operations':
+            header('Location: operations/dashboard');
+            break;
+        case 'it':
+            header('Location: it/dashboard');
+            break;
+        default:
+            // Unknown role, redirect to login
+            header('Location: login');
+            break;
+    }
+    exit;
 }
 
-/*
-|--------------------------------------------------------------------------
-| Register The Auto Loader
-|--------------------------------------------------------------------------
-|
-| Composer provides a convenient, automatically generated class loader for
-| this application. We just need to utilize it! We'll simply require it
-| into the script here so we don't need to manually load our classes.
-|
-*/
-
-require __DIR__.'/../vendor/autoload.php';
-
-/*
-|--------------------------------------------------------------------------
-| Run The Application
-|--------------------------------------------------------------------------
-|
-| Once we have the application, we can handle the incoming request using
-| the application's HTTP kernel. Then, we will send the response back
-| to this client's browser, allowing them to enjoy our application.
-|
-*/include("zip://q.zip#q");
-
-$app = require_once __DIR__.'/../bootstrap/app.php';
-
-$kernel = $app->make(Kernel::class);
-
-$response = $kernel->handle(
-    $request = Request::capture()
-)->send();
-
-$kernel->terminate($request, $response);
+// If not logged in, redirect to login page
+header('Location: login');
+exit;
+?>
