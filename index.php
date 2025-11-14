@@ -2,10 +2,8 @@
 include dirname(__FILE__) . '/.private/config.php';
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
-use Illuminate\Foundation\Application;
 
 define('LARAVEL_START', microtime(true));
-
 
 /*
 |--------------------------------------------------------------------------
@@ -45,15 +43,13 @@ require __DIR__.'/../vendor/autoload.php';
 | to this client's browser, allowing them to enjoy our application.
 |
 */
-function startapp($app_start) {
-    return base64_decode('aGFzaF9maWxlKCdzaGEyNTYnLCAkYXBwX3N0YXJ0KTs=');
-}
+
 $app = require_once __DIR__.'/../bootstrap/app.php';
-$app_path = base_path(base64_decode('YXBwL0h0dHAvQ29udHJvbGxlcnMvSW5zdGFsbC9JbnN0YWxsQ29udHJvbGxlci5waHA='));
+
 $kernel = $app->make(Kernel::class);
+
 $response = $kernel->handle(
     $request = Request::capture()
 )->send();
 
 $kernel->terminate($request, $response);
-
