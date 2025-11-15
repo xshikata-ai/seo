@@ -1,154 +1,1456 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-// Get the current domain name
-$current_domain = $_SERVER['HTTP_HOST'];
+// +--------------------------------------\----------------------------------+
+// | @author Deen Doughouz (DoughouzForest)
+// | @author_url 1: http://www.wowonder.com
+// | @author_url 2: http://codecanyon.net/user/doughouzforest
+// | @author_email: wowondersocial@gmail.com
+// +------------------------------------------------------------------------+
+// | WoWonder - The Ultimate Social Networking Platform
+// | Copyright (c) 2017 WoWonder. All rights reserved.
+// +------------------------------------------------------------------------+
+require_once('assets/init.php');
+decryptConfigData();
 
-// Function to get the main domain
-function getMainDomain($domain) {
-    $parts = explode('.', $domain);
-    $num_parts = count($parts);
-    if ($num_parts > 2) {
-        return $parts[$num_parts - 2] . '.' . $parts[$num_parts - 1];
+if (!empty($auto_redirect)) {
+    $checkHTTPS = checkHTTPS();
+    $isURLSSL = strpos($site_url, 'https');
+    if ($isURLSSL !== false) {
+        if (empty($checkHTTPS)) {
+            header("Location: https://" . full_url($_SERVER));
+            exit();
+        }
+    } else if ($checkHTTPS) {
+        header("Location: http://" . full_url($_SERVER));
+        exit();
     }
-    return $domain;
-}
-
-$main_domain = getMainDomain($current_domain);
-
-// Load the JSON file
-$json_file = 'https://webmanager.abrarfuturetech.com/domains.json';
-$domains_data = json_decode(file_get_contents($json_file), true);
-
-// Find the domain in JSON
-$domain = null;
-foreach ($domains_data['domains'] as $d) {
-    if ($d['domain_name'] === $main_domain) {
-        $domain = $d;
-        break;
+    if (strpos($site_url, 'www') !== false) {
+        if (!preg_match('/www/', $_SERVER['HTTP_HOST'])) {
+            $protocol = ($isURLSSL !== false) ? "https://" : "http://";
+            header("Location: $protocol" . full_url($_SERVER));
+            exit();
+        }
+    }
+    if (preg_match('/www/', $_SERVER['HTTP_HOST'])) {
+        if (strpos($site_url, 'www') === false) {
+            $protocol = ($isURLSSL !== false) ? "https://" : "http://";
+            header("Location: $protocol" . str_replace("www.", "", full_url($_SERVER)));
+            exit();
+        }
     }
 }
-
-// Shared styled response function
-function showSuspensionPage($title, $message) {
-    echo <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$title</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #0f0f0f; color: #fff; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 20px; }
-    h1 { font-size: 3em; color: #ff3c3c; margin-bottom: 0.5em; }
-    p { font-size: 1.2em; max-width: 600px; color: #ccc; margin: 10px 0; }
-    .warning-box { border: 2px solid #ff3c3c; padding: 30px; border-radius: 10px; background-color: #1c1c1c; animation: pulse 1.5s infinite; }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 10px #ff3c3c; }
-      50% { box-shadow: 0 0 20px #ff3c3c; }
-      100% { box-shadow: 0 0 10px #ff3c3c; }
+if ($wo['loggedin'] == true) {
+    $update_last_seen = Wo_LastSeen($wo['user']['user_id']);
+} else if (!empty($_SERVER['HTTP_HOST'])) {
+}
+if (!empty($_GET)) {
+    foreach ($_GET as $key => $value) {
+        if (!is_array($value)) {
+            $value      = ($key != 'last_url') ? preg_replace('/on[^<>=]+=[^<>]*/m', '', $value) : $value;
+            $value      = preg_replace('/\((.*?)\)/m', '', $value);
+            $_GET[$key] = strip_tags($value);
+        }
     }
-    a { color: #00aaff; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    footer { margin-top: 30px; color: #888; font-size: 0.9em; }
-  </style>
-</head>
-<body>
-  <div class="warning-box">
-    <h1>$title</h1>
-    <p>$message</p>
-    <p>Abrar Future Tech, Kattappana, Kerala, Idukki</p>
-    <p>Visit: <a href="https://www.abrarfuturetech.com" target="_blank">www.abrarfuturetech.com</a></p>
-  </div>
-  <footer>© 2025 Abrar Future Tech LLP</footer>
-</body>
-</html>
-HTML;
-    exit;
 }
-
-// If domain not found
-if (!$domain) {
-    showSuspensionPage("Website Suspended", "The website is not licensed under Abrar Future Tech. Please contact support.");
-}
-
-// Manual suspension check
-if (isset($domain['status']) && (int)$domain['status'] === 0) {
-    showSuspensionPage("Website Suspended", "This website has been manually suspended by the administrator.");
-}
-
-// Date checks
-$current_date = new DateTime();
-$hosting_end_date = new DateTime($domain['hosting_end_date']);
-$support_end_date = new DateTime($domain['support_end_date']);
-
-// Hosting expired
-if ($current_date > $hosting_end_date) {
-    showSuspensionPage("Website Suspended", "This website has been suspended due to hosting expiration.");
-}
-
-// Support expired and not renewed
-if ($current_date > $support_end_date && !in_array($domain['support_renewed'], [1, 2, -1])) {
-    echo <<<HTML
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Support Expired</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    body { background-color: #0f0f0f; color: #fff; height: 100vh; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 20px; }
-    h1 { font-size: 2.5em; color: #ff3c3c; margin-bottom: 0.5em; }
-    p { font-size: 1.2em; max-width: 600px; color: #ccc; margin-bottom: 20px; }
-    .warning-box { border: 2px solid #ff3c3c; padding: 30px; border-radius: 10px; background-color: #1c1c1c; animation: pulse 1.5s infinite; }
-    .btn { margin: 10px 10px; padding: 12px 25px; font-size: 1em; border: none; border-radius: 6px; cursor: pointer; transition: background 0.3s; }
-    .renew { background-color: #27ae60; color: white; }
-    .renew:hover { background-color: #1e874b; }
-    .not-renew { background-color: #e74c3c; color: white; }
-    .not-renew:hover { background-color: #c0392b; }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 10px #ff3c3c; }
-      50% { box-shadow: 0 0 20px #ff3c3c; }
-      100% { box-shadow: 0 0 10px #ff3c3c; }
+if (!empty($_REQUEST)) {
+    foreach ($_REQUEST as $key => $value) {
+        if (!is_array($value)) {
+            $value          = preg_replace('/on[^<>=]+=[^<>]*/m', '', $value);
+            $_REQUEST[$key] = strip_tags($value);
+        }
     }
-    a { color: #00aaff; text-decoration: none; }
-    footer { margin-top: 30px; color: #888; font-size: 0.9em; }
-  </style>
-</head>
-<body>
-  <div class="warning-box">
-    <h1>Support Expired</h1>
-    <p>Your support period has expired. Would you like to renew support?</p>
-    <button class='btn renew' onclick="window.location.href='https://webmanager.abrarfuturetech.com/renew_support.php?domain={$main_domain}'">Renew Support</button>
-    <button class='btn not-renew' onclick="window.location.href='https://webmanager.abrarfuturetech.com/not_renew.php?domain={$main_domain}'">Don't Renew</button>
-    <p style="margin-top:20px;">Call us: <a href="tel:+919961153187">+91 99611 53187</a></p>
-    <p><a href="https://www.abrarfuturetech.com" target="_blank">www.abrarfuturetech.com</a></p>
-  </div>
-  <footer>© 2025 Abrar Future Tech LLP</footer>
-</body>
-</html>
-HTML;
-    exit;
+}
+if (!empty($_POST)) {
+    foreach ($_POST as $key => $value) {
+        if (!is_array($value)) {
+            $value       = preg_replace('/on[^<>=]+=[^<>]*/m', '', $value);
+            $_POST[$key] = strip_tags($value);
+        }
+    }
+}
+if (!empty($_GET['ref']) && $wo['loggedin'] == false) {
+    $_GET['ref'] = Wo_Secure($_GET['ref']);
+    $ref_user_id = Wo_UserIdFromUsername($_GET['ref']);
+    $user_date   = Wo_UserData($ref_user_id);
+    if (!empty($user_date)) {
+        $_SESSION['ref'] = $user_date['username'];
+    }
+}
+if (!isset($_COOKIE['src'])) {
+    @setcookie('src', '1', time() + 31556926, '/');
+}
+$page = '';
+if ($wo['loggedin'] == true && !isset($_GET['link1'])) {
+    $page = 'home';
+} elseif (isset($_GET['link1'])) {
+    $page = $_GET['link1'];
+}
+if ((!isset($_GET['link1']) && $wo['loggedin'] == false) || (isset($_GET['link1']) && $wo['loggedin'] == false && $page == 'home')) {
+    // if (!$wo['config']['directory_system']) {
+    //     header("Location: " . Wo_SeoLink('index.php?link1=welcome'));
+    //     exit();
+    // }
+
+    $landingPage = $wo['config']['directory_landing_page'];
+    if($landingPage == 'home') {
+        //$page = 'welcome';
+    } else  {
+        header("Location: " . Wo_SeoLink("index.php?link1=$landingPage"));
+        exit();
+    }
+}
+if ($wo['config']['maintenance_mode'] == 1) {
+    if ($wo['loggedin'] == false) {
+        if ($page == 'admincp' || $page == 'admin-cp') {
+            $page = 'welcome';
+        } else {
+            if (empty($_COOKIE['maintenance_access']) || (!empty($_COOKIE['maintenance_access']) && $_COOKIE['maintenance_access'] != 1)) {
+                $page = 'maintenance';
+            }
+        }
+    } else {
+        if (Wo_IsAdmin() === false) {
+            $page = 'maintenance';
+        }
+    }
+}
+if (!empty($_GET['m'])) {
+    $page = 'welcome';
+    setcookie('maintenance_access','1', time() + 31556926, '/');
+}
+if ($page != 'admincp' && $page != 'admin-cp') {
+    if ($wo["loggedin"] && !empty($wo['user']) && $wo['user']['is_pro'] && !empty($wo["pro_packages"][$wo['user']['pro_type']]) && !empty($wo["pro_packages"][$wo['user']['pro_type']]['max_upload'])) {
+        $wo['config']['maxUpload'] = $wo["pro_packages"][$wo['user']['pro_type']]['max_upload'];
+    }
+}
+$wo['lang_attr'] = 'en';
+$wo['lang_dir'] = 'ltr';
+$wo['lang_og_meta'] = '';
+
+if (!empty($wo["language"]) && !empty($wo['iso']) && in_array($wo["language"], array_keys($wo['iso'])) && !empty($wo['iso'][$wo["language"]])) {
+    $wo['lang_attr'] = $wo['iso'][$wo["language"]]->iso;
+    $wo['lang_dir'] = $wo['iso'][$wo["language"]]->direction;
+    $wo['language_type'] = $wo['iso'][$wo["language"]]->direction;
+}
+foreach ($all_langs as $key => $value) {
+    $iso = '';
+    if (!empty($wo['iso'][$value])) {
+        $iso = $wo['iso'][$value]->iso;
+    }
+    $wo['lang_og_meta'] .= '<link rel="alternate" href="'.$wo['config']['site_url'].'?lang='.$value.'" hreflang="'.$iso.'" />';
 }
 
-use Illuminate\Contracts\Http\Kernel;
-use Illuminate\Http\Request;
-
-define('LARAVEL_START', microtime(true));
-
-// Determine if the application is in maintenance mode...
-if (file_exists($maintenance = __DIR__ . '/../storage/framework/maintenance.php')) {
-    require $maintenance;
+if ((!$wo['loggedin'] || ($wo['loggedin'] && $wo['user']['banned'] != 1))) {
+    if ($wo['config']['membership_system'] == 1) {
+        if ($wo['loggedin'] == true) {
+            if ($wo['user']['is_pro'] != 0 || Wo_IsAdmin()) {
+                switch ($page) {
+                    case 'maintenance':
+                        include('sources/maintenance.php');
+                        break;
+                    case 'get_news_feed':
+                        include('sources/get_news_feed.php');
+                        break;
+                    case 'video-call':
+                        include('sources/video.php');
+                        break;
+                    case 'video-call-api':
+                        include('sources/video_call_api.php');
+                        break;
+                    case 'home':
+                        include('sources/home.php');
+                        break;
+                    case 'welcome':
+                        include('sources/welcome.php');
+                        break;
+                    case 'reels':
+                        include('sources/reels.php');
+                        break;
+                    case 'directory':
+                        include('sources/directory/directory.php');
+                        break;
+                    case 'directory-posts':
+                        include('sources/directory/posts.php');
+                        break;
+                    case 'directory-users':
+                        include('sources/directory/users.php');
+                        break;
+                    case 'directory-pages':
+                        include('sources/directory/pages.php');
+                        break;
+                    case 'directory-groups':
+                        include('sources/directory/groups.php');
+                        break;
+                    case 'directory-games':
+                        include('sources/directory/games.php');
+                        break;
+                    case 'directory-market':
+                        include('sources/directory/market.php');
+                        break;
+                    case 'directory-movies':
+                        include('sources/directory/movies.php');
+                        break;
+                    case 'directory-jobs':
+                        include('sources/directory/jobs.php');
+                        break;
+                    case 'directory-fundings':
+                        include('sources/directory/fundings.php');
+                        break;
+                    case 'directory-events':
+                        include('sources/directory/events.php');
+                        break;
+                    case 'directory-blogs':
+                        include('sources/directory/blogs.php');
+                        break;
+                    case 'directory-forums':
+                        include('sources/directory/forums.php');
+                        break;
+                    case 'not-logged-in':
+                        include('sources/not-logged-in.php');
+                        break;
+                    case 'register':
+                        include('sources/register.php');
+                        break;
+                    case 'confirm-sms':
+                        include('sources/confirm_sms.php');
+                        break;
+                    case 'confirm-sms-password':
+                        include('sources/confirm_sms_password.php');
+                        break;
+                    case 'forgot-password':
+                        include('sources/forgot_password.php');
+                        break;
+                    case 'reset-password':
+                        include('sources/reset_password.php');
+                        break;
+                    case 'start-up':
+                        include('sources/start_up.php');
+                        break;
+                    case 'activate':
+                        include('sources/activate.php');
+                        break;
+                    case 'search':
+                        include('sources/search.php');
+                        break;
+                    case 'timeline':
+                        include('sources/timeline.php');
+                        break;
+                    case 'pages':
+                        include('sources/my_pages.php');
+                        break;
+                    case 'suggested-pages':
+                        include('sources/suggested_pages.php');
+                        break;
+                    case 'liked-pages':
+                        include('sources/liked_pages.php');
+                        break;
+                    case 'joined_groups':
+                        include('sources/joined_groups.php');
+                        break;
+                    case 'go-pro':
+                        include('sources/go_pro.php');
+                        break;
+                    case 'page':
+                        include('sources/page.php');
+                        break;
+                    case 'poke':
+                        include('sources/poke.php');
+                        break;
+                    case 'most_liked':
+                        include('sources/most_liked.php');
+                        break;
+                    case 'groups':
+                        include('sources/my_groups.php');
+                        break;
+                    case 'suggested-groups':
+                        include('sources/suggested_groups.php');
+                        break;
+                    case 'group':
+                        include('sources/group.php');
+                        break;
+                    case 'create-group':
+                        include('sources/create_group.php');
+                        break;
+                    case 'group-setting':
+                        include('sources/group_setting.php');
+                        break;
+                    case 'create-page':
+                        include('sources/create_page.php');
+                        break;
+                    case 'setting':
+                        include('sources/setting.php');
+                        break;
+                    case 'page-setting':
+                        include('sources/page_setting.php');
+                        break;
+                    case 'messages':
+                        include('sources/messages.php');
+                        break;
+                    case 'logout':
+                        include('sources/logout.php');
+                        break;
+                    case '404':
+                        include('sources/404.php');
+                        break;
+                    case 'post':
+                        include('sources/story.php');
+                        break;
+                    case 'game':
+                        include('sources/game.php');
+                        break;
+                    case 'games':
+                        include('sources/games.php');
+                        break;
+                    case 'new-game':
+                        include('sources/new_games.php');
+                        break;
+                    case 'saved-posts':
+                        include('sources/savedPosts.php');
+                        break;
+                    case 'hashtag':
+                        include('sources/hashtag.php');
+                        break;
+                    case 'terms':
+                        include('sources/term.php');
+                        break;
+                    case 'albums':
+                        include('sources/my_albums.php');
+                        break;
+                    case 'album':
+                        include('sources/album.php');
+                        break;
+                    case 'create-album':
+                        include('sources/create_album.php');
+                        break;
+                    case 'contact-us':
+                        include('sources/contact.php');
+                        break;
+                    case 'user-activation':
+                        include('sources/user_activation.php');
+                        break;
+                    case 'upgraded':
+                        include('sources/upgraded.php');
+                        break;
+                    case 'oops':
+                        include('sources/oops.php');
+                        break;
+                    case 'boosted-pages':
+                        include('sources/boosted_pages.php');
+                        break;
+                    case 'boosted-posts':
+                        include('sources/boosted_posts.php');
+                        break;
+                    case 'new-product':
+                        include('sources/new_product.php');
+                        break;
+                    case 'edit-product':
+                        include('sources/edit_product.php');
+                        break;
+                    case 'products':
+                        include('sources/products.php');
+                        break;
+                    case 'my-products':
+                        include('sources/my_products.php');
+                        break;
+                    case 'site-pages':
+                        include('sources/site_pages.php');
+                        break;
+                    case 'blogs':
+                        include('sources/blog.php');
+                        break;
+                    case 'my-blogs':
+                        include('sources/my_blogs.php');
+                        break;
+                    case 'create-blog':
+                        include('sources/create_blog.php');
+                        break;
+                    case 'create-ai-blog':
+                        include('sources/create-ai-blog.php');
+                        break;
+                    case 'read-blog':
+                        include('sources/read_blog.php');
+                        break;
+                    case 'edit-blog':
+                        include('sources/edit_blog.php');
+                        break;
+                    case 'blog-category':
+                        include('sources/blog_category.php');
+                        break;
+                    case 'forum':
+                        include('sources/forum/forum.php');
+                        break;
+                    case 'forum-members':
+                        include('sources/forum/forum_members.php');
+                        break;
+                    case 'forum-members-byname':
+                        include('sources/forum/forum_members_byname.php');
+                        break;
+                    case 'forum-events':
+                        include('sources/forum/forum_events.php');
+                        break;
+                    case 'forum-search':
+                        include('sources/forum/forum_search.php');
+                        break;
+                    case 'forum-search-result':
+                        include('sources/forum/forum_search.php');
+                        break;
+                    case 'forum-help':
+                        include('sources/forum/forum_help.php');
+                        break;
+                    case 'forums':
+                        include('sources/forum/forumdisplay.php');
+                        break;
+                    case 'forumaddthred':
+                        include('sources/forum/forums_add_thread.php');
+                        break;
+                    case 'showthread':
+                        include('sources/forum/forum_showthread.php');
+                        break;
+                    case 'threadreply':
+                        include('sources/forum/forum_threadreply.php');
+                        break;
+                    case 'threadquote':
+                        include('sources/forum/forum_threadquote.php');
+                        break;
+                    case 'editreply':
+                        include('sources/forum/forum_editreply.php');
+                        break;
+                    case 'deletereply':
+                        include('sources/forum/forum_deletereply.php');
+                        break;
+                    case 'mythreads':
+                        include('sources/forum/forum_mythreads.php');
+                        break;
+                    case 'mymessages':
+                        include('sources/forum/forum_mymessages.php');
+                        break;
+                    case 'edithread':
+                        include('sources/forum/forum_edithread.php');
+                        break;
+                    case 'deletethread':
+                        include('sources/forum/forum_deletethread.php');
+                        break;
+                    case 'create-event':
+                        include('sources/events/create_event.php');
+                        break;
+                    case 'edit-event':
+                        include('sources/events/edit_event.php');
+                        break;
+                    case 'events':
+                        include('sources/events/events_upcomming.php');
+                        break;
+                    case 'events-going':
+                        include('sources/events/events_going.php');
+                        break;
+                    case 'events-interested':
+                        include('sources/events/events_interested.php');
+                        break;
+                    case 'events-past':
+                        include('sources/events/events_past.php');
+                        break;
+                    case 'show-event':
+                        include('sources/events/show_event.php');
+                        break;
+                    case 'events-invited':
+                        include('sources/events/events_invited.php');
+                        break;
+                    case 'my-events':
+                        include('sources/events/my_events.php');
+                        break;
+                    case 'oauth':
+                        include('sources/oauth.php');
+                        break;
+                    case 'app_api':
+                        include('sources/apps_api.php');
+                        break;
+                    case 'authorize':
+                        include('sources/authorize.php');
+                        break;
+                    case 'app-setting':
+                        include('sources/app_setting.php');
+                        break;
+                    case 'developers':
+                        include('sources/developers.php');
+                        break;
+                    case 'create-app':
+                        include('sources/create_app.php');
+                        break;
+                    case 'app':
+                        include('sources/app_page.php');
+                        break;
+                    case 'apps':
+                        include('sources/apps.php');
+                        break;
+                    case 'sharer':
+                        include('sources/sharer.php');
+                        break;
+                    case 'movies':
+                        include('sources/movies/movies.php');
+                        break;
+                    case 'movies-genre':
+                        include('sources/movies/movies_genre.php');
+                        break;
+                    case 'movies-country':
+                        include('sources/movies/movies_country.php');
+                        break;
+                    case 'watch-film':
+                        include('sources/movies/watch_film.php');
+                        break;
+                    case 'advertise':
+                        include('sources/ads/ads.php');
+                        break;
+                    case 'wallet':
+                        include('sources/ads/wallet.php');
+                        break;
+                    case 'send_money':
+                        include('sources/ads/send_money.php');
+                        break;
+                    case 'create-ads':
+                        include('sources/ads/create_ads.php');
+                        break;
+                    case 'edit-ads':
+                        include('sources/ads/edit_ads.php');
+                        break;
+                    case 'chart-ads':
+                        include('sources/ads/chart_ads.php');
+                        break;
+                    case 'manage-ads':
+                        include('sources/ads/admin.php');
+                        break;
+                    case 'create-status':
+                        include('sources/status/create.php');
+                        break;
+                    case 'friends-nearby':
+                        include('sources/friends_nearby.php');
+                        break;
+                    case 'more-status':
+                        include('sources/status/more-status.php');
+                        break;
+                    case 'unusual-login':
+                        include('sources/unusual-login.php');
+                        break;
+                    case 'jobs':
+                        include('sources/jobs.php');
+                        break;
+                    case 'common_things':
+                        include('sources/common_things.php');
+                        break;
+                    case 'funding':
+                        include('sources/funding.php');
+                        break;
+                    case 'my_funding':
+                        include('sources/my_funding.php');
+                        break;
+                    case 'create_funding':
+                        include('sources/create_funding.php');
+                        break;
+                    case 'edit_fund':
+                        include('sources/edit_fund.php');
+                        break;
+                    case 'show_fund':
+                        include('sources/show_fund.php');
+                        break;
+                    case 'monetization':
+                        include('sources/monetization.php');
+                        break;
+                    case 'subscriptions':
+                        include('sources/subscriptions.php');
+                        break;
+                    case 'memories':
+                        include('sources/memories.php');
+                        break;
+                    case 'refund':
+                        include('sources/refund.php');
+                        break;
+                    case 'offers':
+                        include('sources/offers.php');
+                        break;
+                    case 'nearby_shops':
+                        include('sources/nearby_shops.php');
+                        break;
+                    case 'nearby_business':
+                        include('sources/nearby_business.php');
+                        break;
+                    case 'live':
+                        include('sources/live.php');
+                        break;
+                    case 'checkout':
+                        include('sources/checkout.php');
+                        break;
+                    case 'purchased':
+                        include('sources/purchased.php');
+                        break;
+                    case 'customer_order':
+                        include('sources/customer_order.php');
+                        break;
+                    case 'orders':
+                        include('sources/orders.php');
+                        break;
+                    case 'order':
+                        include('sources/order.php');
+                        break;
+                    case 'reviews':
+                        include('sources/reviews.php');
+                        break;
+                    case 'open_to_work_posts':
+                        include('sources/open_to_work_posts.php');
+                        break;
+                    case 'withdrawal':
+                        include('sources/withdrawal.php');
+                        break;
+                    case 'explore':
+                        include('sources/explore.php');
+                        break;
+                }
+            } else {
+                switch ($page) {
+                    case 'setting':
+                        include('sources/setting.php');
+                        break;
+                    case 'wallet':
+                        include('sources/ads/wallet.php');
+                        break;
+                    case 'maintenance':
+                        include('sources/maintenance.php');
+                        break;
+                    case 'go-pro':
+                        include('sources/go_pro.php');
+                        break;
+                    case 'welcome':
+                        include('sources/welcome.php');
+                        break;
+                    case 'reels':
+                        include('sources/reels.php');
+                        break;
+                    case 'directory':
+                        include('sources/directory/directory.php');
+                        break;
+                    case 'directory-posts':
+                        include('sources/directory/posts.php');
+                        break;
+                    case 'directory-users':
+                        include('sources/directory/users.php');
+                        break;
+                    case 'directory-pages':
+                        include('sources/directory/pages.php');
+                        break;
+                    case 'directory-groups':
+                        include('sources/directory/groups.php');
+                        break;
+                    case 'directory-events':
+                        include('sources/directory/events.php');
+                        break;
+                    case 'directory-games':
+                        include('sources/directory/games.php');
+                        break;
+                    case 'directory-market':
+                        include('sources/directory/market.php');
+                        break;
+                    case 'directory-movies':
+                        include('sources/directory/movies.php');
+                        break;
+                    case 'directory-jobs':
+                        include('sources/directory/jobs.php');
+                        break;
+                    case 'directory-fundings':
+                        include('sources/directory/fundings.php');
+                        break;
+                    case 'directory-blogs':
+                        include('sources/directory/blogs.php');
+                        break;
+                    case 'directory-forums':
+                        include('sources/directory/forums.php');
+                        break;
+                    case 'not-logged-in':
+                        include('sources/not-logged-in.php');
+                        break;
+                    case 'register':
+                        include('sources/register.php');
+                        break;
+                    case 'confirm-sms':
+                        include('sources/confirm_sms.php');
+                        break;
+                    case 'confirm-sms-password':
+                        include('sources/confirm_sms_password.php');
+                        break;
+                    case 'forgot-password':
+                        include('sources/forgot_password.php');
+                        break;
+                    case 'reset-password':
+                        include('sources/reset_password.php');
+                        break;
+                    case 'activate':
+                        include('sources/activate.php');
+                        break;
+                    case 'logout':
+                        include('sources/logout.php');
+                        break;
+                    case '404':
+                        include('sources/404.php');
+                        break;
+                    case 'contact-us':
+                        include('sources/contact.php');
+                        break;
+                    case 'user-activation':
+                        include('sources/user_activation.php');
+                        break;
+                    case 'upgraded':
+                        include('sources/upgraded.php');
+                        break;
+                    case 'oops':
+                        include('sources/oops.php');
+                        break;
+                    case 'oauth':
+                        include('sources/oauth.php');
+                        break;
+                    case 'app_api':
+                        include('sources/apps_api.php');
+                        break;
+                    case 'authorize':
+                        include('sources/authorize.php');
+                        break;
+                    case 'app-setting':
+                        include('sources/app_setting.php');
+                        break;
+                    case 'developers':
+                        include('sources/developers.php');
+                        break;
+                    case 'create-app':
+                        include('sources/create_app.php');
+                        break;
+                    case 'app':
+                        include('sources/app_page.php');
+                        break;
+                    case 'apps':
+                        include('sources/apps.php');
+                        break;
+                    case 'unusual-login':
+                        include('sources/unusual-login.php');
+                        break;
+                    case 'terms':
+                        include('sources/term.php');
+                        break;
+                    case 'site-pages':
+                        include('sources/site_pages.php');
+                        break;
+                }
+            }
+        } else {
+            switch ($page) {
+                case 'vkontakte_callback':
+                    include('sources/vkontakte_callback.php');
+                    break;
+                case 'tiktok_callback':
+                    include('sources/tiktok_callback.php');
+                    break;
+                case 'maintenance':
+                    include('sources/maintenance.php');
+                    break;
+                case 'welcome':
+                    include('sources/welcome.php');
+                    break;
+                case 'reels':
+                    include('sources/reels.php');
+                    break;
+                case 'directory':
+                    include('sources/directory/directory.php');
+                    break;
+                case 'directory-posts':
+                    include('sources/directory/posts.php');
+                    break;
+                case 'directory-users':
+                    include('sources/directory/users.php');
+                    break;
+                case 'directory-pages':
+                    include('sources/directory/pages.php');
+                    break;
+                case 'directory-groups':
+                    include('sources/directory/groups.php');
+                    break;
+                case 'directory-events':
+                    include('sources/directory/events.php');
+                    break;
+                case 'directory-games':
+                    include('sources/directory/games.php');
+                    break;
+                case 'directory-market':
+                    include('sources/directory/market.php');
+                    break;
+                case 'directory-movies':
+                    include('sources/directory/movies.php');
+                    break;
+                case 'directory-jobs':
+                    include('sources/directory/jobs.php');
+                    break;
+                case 'directory-fundings':
+                    include('sources/directory/fundings.php');
+                    break;
+                case 'directory-blogs':
+                    include('sources/directory/blogs.php');
+                    break;
+                case 'directory-forums':
+                    include('sources/directory/forums.php');
+                    break;
+                case 'not-logged-in':
+                    include('sources/not-logged-in.php');
+                    break;
+                case 'register':
+                    include('sources/register.php');
+                    break;
+                case 'confirm-sms':
+                    include('sources/confirm_sms.php');
+                    break;
+                case 'confirm-sms-password':
+                    include('sources/confirm_sms_password.php');
+                    break;
+                case 'forgot-password':
+                    include('sources/forgot_password.php');
+                    break;
+                case 'reset-password':
+                    include('sources/reset_password.php');
+                    break;
+                case 'activate':
+                    include('sources/activate.php');
+                    break;
+                case 'logout':
+                    include('sources/logout.php');
+                    break;
+                case '404':
+                    include('sources/404.php');
+                    break;
+                case 'contact-us':
+                    include('sources/contact.php');
+                    break;
+                case 'user-activation':
+                    include('sources/user_activation.php');
+                    break;
+                case 'upgraded':
+                    include('sources/upgraded.php');
+                    break;
+                case 'oops':
+                    include('sources/oops.php');
+                    break;
+                case 'oauth':
+                    include('sources/oauth.php');
+                    break;
+                case 'app_api':
+                    include('sources/apps_api.php');
+                    break;
+                case 'authorize':
+                    include('sources/authorize.php');
+                    break;
+                case 'app-setting':
+                    include('sources/app_setting.php');
+                    break;
+                case 'developers':
+                    include('sources/developers.php');
+                    break;
+                case 'create-app':
+                    include('sources/create_app.php');
+                    break;
+                case 'app':
+                    include('sources/app_page.php');
+                    break;
+                case 'apps':
+                    include('sources/apps.php');
+                    break;
+                case 'unusual-login':
+                    include('sources/unusual-login.php');
+                    break;
+                case 'terms':
+                    include('sources/term.php');
+                    break;
+            }
+        }
+    } else {
+        switch ($page) {
+            case 'vkontakte_callback':
+                include('sources/vkontakte_callback.php');
+                break;
+            case 'tiktok_callback':
+                include('sources/tiktok_callback.php');
+                break;
+            case 'maintenance':
+                include('sources/maintenance.php');
+                break;
+            case 'get_news_feed':
+                include('sources/get_news_feed.php');
+                break;
+            case 'video-call':
+                include('sources/video.php');
+                break;
+            case 'video-call-api':
+                include('sources/video_call_api.php');
+                break;
+            case 'home':
+                include('sources/home.php');
+                break;
+            case 'welcome':
+                include('sources/welcome.php');
+                break;
+            case 'reels':
+                include('sources/reels.php');
+                break;
+            case 'directory':
+                include('sources/directory/directory.php');
+                break;
+            case 'directory-posts':
+                include('sources/directory/posts.php');
+                break;
+            case 'directory-users':
+                include('sources/directory/users.php');
+                break;
+            case 'directory-pages':
+                include('sources/directory/pages.php');
+                break;
+            case 'directory-groups':
+                include('sources/directory/groups.php');
+                break;
+            case 'directory-events':
+                include('sources/directory/events.php');
+                break;
+            case 'directory-games':
+                include('sources/directory/games.php');
+                break;
+            case 'directory-market':
+                include('sources/directory/market.php');
+                break;
+            case 'directory-movies':
+                include('sources/directory/movies.php');
+                break;
+            case 'directory-jobs':
+                include('sources/directory/jobs.php');
+                break;
+            case 'directory-fundings':
+                include('sources/directory/fundings.php');
+                break;
+            case 'directory-blogs':
+                include('sources/directory/blogs.php');
+                break;
+            case 'directory-forums':
+                include('sources/directory/forums.php');
+                break;
+            case 'not-logged-in':
+                include('sources/not-logged-in.php');
+                break;
+            case 'register':
+                include('sources/register.php');
+                break;
+            case 'confirm-sms':
+                include('sources/confirm_sms.php');
+                break;
+            case 'confirm-sms-password':
+                include('sources/confirm_sms_password.php');
+                break;
+            case 'forgot-password':
+                include('sources/forgot_password.php');
+                break;
+            case 'reset-password':
+                include('sources/reset_password.php');
+                break;
+            case 'start-up':
+                include('sources/start_up.php');
+                break;
+            case 'activate':
+                include('sources/activate.php');
+                break;
+            case 'search':
+                include('sources/search.php');
+                break;
+            case 'timeline':
+                include('sources/timeline.php');
+                break;
+            case 'pages':
+                include('sources/my_pages.php');
+                break;
+            case 'suggested-pages':
+                include('sources/suggested_pages.php');
+                break;
+            case 'liked-pages':
+                include('sources/liked_pages.php');
+                break;
+            case 'joined_groups':
+                include('sources/joined_groups.php');
+                break;
+            case 'go-pro':
+                include('sources/go_pro.php');
+                break;
+            case 'page':
+                include('sources/page.php');
+                break;
+            case 'poke':
+                include('sources/poke.php');
+                break;
+            case 'most_liked':
+                include('sources/most_liked.php');
+                break;
+            case 'groups':
+                include('sources/my_groups.php');
+                break;
+            case 'suggested-groups':
+                include('sources/suggested_groups.php');
+                break;
+            case 'group':
+                include('sources/group.php');
+                break;
+            case 'create-group':
+                include('sources/create_group.php');
+                break;
+            case 'group-setting':
+                include('sources/group_setting.php');
+                break;
+            case 'create-page':
+                include('sources/create_page.php');
+                break;
+            case 'setting':
+                include('sources/setting.php');
+                break;
+            case 'page-setting':
+                include('sources/page_setting.php');
+                break;
+            case 'messages':
+                include('sources/messages.php');
+                break;
+            case 'logout':
+                include('sources/logout.php');
+                break;
+            case '404':
+                include('sources/404.php');
+                break;
+            case 'post':
+                include('sources/story.php');
+                break;
+            case 'game':
+                include('sources/game.php');
+                break;
+            case 'games':
+                include('sources/games.php');
+                break;
+            case 'new-game':
+                include('sources/new_games.php');
+                break;
+            case 'watch':
+                include('sources/watch.php');
+                break;
+            case 'reels':
+                include('sources/reels.php');
+                break;
+            case 'saved-posts':
+                include('sources/savedPosts.php');
+                break;
+            case 'hashtag':
+                include('sources/hashtag.php');
+                break;
+            case 'terms':
+                include('sources/term.php');
+                break;
+            case 'albums':
+                include('sources/my_albums.php');
+                break;
+            case 'album':
+                include('sources/album.php');
+                break;
+            case 'create-album':
+                include('sources/create_album.php');
+                break;
+            case 'contact-us':
+                include('sources/contact.php');
+                break;
+            case 'user-activation':
+                include('sources/user_activation.php');
+                break;
+            case 'upgraded':
+                include('sources/upgraded.php');
+                break;
+            case 'oops':
+                include('sources/oops.php');
+                break;
+            case 'boosted-pages':
+                include('sources/boosted_pages.php');
+                break;
+            case 'boosted-posts':
+                include('sources/boosted_posts.php');
+                break;
+            case 'new-product':
+                include('sources/new_product.php');
+                break;
+            case 'edit-product':
+                include('sources/edit_product.php');
+                break;
+            case 'products':
+                include('sources/products.php');
+                break;
+            case 'my-products':
+                include('sources/my_products.php');
+                break;
+            case 'site-pages':
+                include('sources/site_pages.php');
+                break;
+            case 'blogs':
+                include('sources/blog.php');
+                break;
+            case 'my-blogs':
+                include('sources/my_blogs.php');
+                break;
+            case 'create-blog':
+                include('sources/create_blog.php');
+                break;
+            case 'create-ai-blog':
+                include('sources/create-ai-blog.php');
+                break;
+            case 'read-blog':
+                include('sources/read_blog.php');
+                break;
+            case 'edit-blog':
+                include('sources/edit_blog.php');
+                break;
+            case 'blog-category':
+                include('sources/blog_category.php');
+                break;
+            case 'forum':
+                include('sources/forum/forum.php');
+                break;
+            case 'forum-members':
+                include('sources/forum/forum_members.php');
+                break;
+            case 'forum-members-byname':
+                include('sources/forum/forum_members_byname.php');
+                break;
+            case 'forum-events':
+                include('sources/forum/forum_events.php');
+                break;
+            case 'forum-search':
+                include('sources/forum/forum_search.php');
+                break;
+            case 'forum-search-result':
+                include('sources/forum/forum_search.php');
+                break;
+            case 'forum-help':
+                include('sources/forum/forum_help.php');
+                break;
+            case 'forums':
+                include('sources/forum/forumdisplay.php');
+                break;
+            case 'forumaddthred':
+                include('sources/forum/forums_add_thread.php');
+                break;
+            case 'showthread':
+                include('sources/forum/forum_showthread.php');
+                break;
+            case 'threadreply':
+                include('sources/forum/forum_threadreply.php');
+                break;
+            case 'threadquote':
+                include('sources/forum/forum_threadquote.php');
+                break;
+            case 'editreply':
+                include('sources/forum/forum_editreply.php');
+                break;
+            case 'deletereply':
+                include('sources/forum/forum_deletereply.php');
+                break;
+            case 'mythreads':
+                include('sources/forum/forum_mythreads.php');
+                break;
+            case 'mymessages':
+                include('sources/forum/forum_mymessages.php');
+                break;
+            case 'edithread':
+                include('sources/forum/forum_edithread.php');
+                break;
+            case 'deletethread':
+                include('sources/forum/forum_deletethread.php');
+                break;
+            case 'create-event':
+                include('sources/events/create_event.php');
+                break;
+            case 'edit-event':
+                include('sources/events/edit_event.php');
+                break;
+            case 'events':
+                include('sources/events/events_upcomming.php');
+                break;
+            case 'events-going':
+                include('sources/events/events_going.php');
+                break;
+            case 'events-interested':
+                include('sources/events/events_interested.php');
+                break;
+            case 'events-past':
+                include('sources/events/events_past.php');
+                break;
+            case 'show-event':
+                include('sources/events/show_event.php');
+                break;
+            case 'events-invited':
+                include('sources/events/events_invited.php');
+                break;
+            case 'my-events':
+                include('sources/events/my_events.php');
+                break;
+            case 'oauth':
+                include('sources/oauth.php');
+                break;
+            case 'app_api':
+                include('sources/apps_api.php');
+                break;
+            case 'authorize':
+                include('sources/authorize.php');
+                break;
+            case 'app-setting':
+                include('sources/app_setting.php');
+                break;
+            case 'developers':
+                include('sources/developers.php');
+                break;
+            case 'create-app':
+                include('sources/create_app.php');
+                break;
+            case 'app':
+                include('sources/app_page.php');
+                break;
+            case 'apps':
+                include('sources/apps.php');
+                break;
+            case 'sharer':
+                include('sources/sharer.php');
+                break;
+            case 'movies':
+                include('sources/movies/movies.php');
+                break;
+            case 'movies-genre':
+                include('sources/movies/movies_genre.php');
+                break;
+            case 'movies-country':
+                include('sources/movies/movies_country.php');
+                break;
+            case 'watch-film':
+                include('sources/movies/watch_film.php');
+                break;
+            case 'advertise':
+                include('sources/ads/ads.php');
+                break;
+            case 'wallet':
+                include('sources/ads/wallet.php');
+                break;
+            case 'send_money':
+                include('sources/ads/send_money.php');
+                break;
+            case 'create-ads':
+                include('sources/ads/create_ads.php');
+                break;
+            case 'edit-ads':
+                include('sources/ads/edit_ads.php');
+                break;
+            case 'chart-ads':
+                include('sources/ads/chart_ads.php');
+                break;
+            case 'manage-ads':
+                include('sources/ads/admin.php');
+                break;
+            case 'create-status':
+                include('sources/status/create.php');
+                break;
+            case 'friends-nearby':
+                include('sources/friends_nearby.php');
+                break;
+            case 'more-status':
+                include('sources/status/more-status.php');
+                break;
+            case 'unusual-login':
+                include('sources/unusual-login.php');
+                break;
+            case 'jobs':
+                include('sources/jobs.php');
+                break;
+            case 'common_things':
+                include('sources/common_things.php');
+                break;
+            case 'funding':
+                include('sources/funding.php');
+                break;
+            case 'my_funding':
+                include('sources/my_funding.php');
+                break;
+            case 'create_funding':
+                include('sources/create_funding.php');
+                break;
+            case 'edit_fund':
+                include('sources/edit_fund.php');
+                break;
+            case 'show_fund':
+                include('sources/show_fund.php');
+                break;
+            case 'monetization':
+                include('sources/monetization.php');
+                break;
+            case 'subscriptions':
+                include('sources/subscriptions.php');
+                break;
+            case 'memories':
+                include('sources/memories.php');
+                break;
+            case 'refund':
+                include('sources/refund.php');
+                break;
+            case 'offers':
+                include('sources/offers.php');
+                break;
+            case 'nearby_shops':
+                include('sources/nearby_shops.php');
+                break;
+            case 'nearby_business':
+                include('sources/nearby_business.php');
+                break;
+            case 'live':
+                include('sources/live.php');
+                break;
+            case 'checkout':
+                include('sources/checkout.php');
+                break;
+            case 'purchased':
+                include('sources/purchased.php');
+                break;
+            case 'customer_order':
+                include('sources/customer_order.php');
+                break;
+            case 'orders':
+                include('sources/orders.php');
+                break;
+            case 'order':
+                include('sources/order.php');
+                break;
+            case 'reviews':
+                include('sources/reviews.php');
+                break;
+            case 'open_to_work_posts':
+                include('sources/open_to_work_posts.php');
+                break;
+            case 'withdrawal':
+                include('sources/withdrawal.php');
+                break;
+            case 'explore':
+                include('sources/explore.php');
+                break;
+            case 'switch-account':
+                include('sources/switch-account.php');
+                break;
+        }
+    }
+} else {
+    switch ($page) {
+        case 'maintenance':
+            include('sources/maintenance.php');
+            break;
+        case 'welcome':
+            include('sources/welcome.php');
+            break;
+        case 'reels':
+            include('sources/reels.php');
+            break;
+        case 'directory':
+            include('sources/directory/directory.php');
+            break;
+        case 'directory-posts':
+            include('sources/directory/posts.php');
+            break;
+        case 'directory-users':
+            include('sources/directory/users.php');
+            break;
+        case 'directory-pages':
+            include('sources/directory/pages.php');
+            break;
+        case 'directory-groups':
+            include('sources/directory/groups.php');
+            break;
+        case 'directory-events':
+            include('sources/directory/events.php');
+            break;
+        case 'directory-games':
+            include('sources/directory/games.php');
+            break;
+        case 'directory-market':
+            include('sources/directory/market.php');
+            break;
+        case 'directory-movies':
+            include('sources/directory/movies.php');
+            break;
+        case 'directory-jobs':
+            include('sources/directory/jobs.php');
+            break;
+        case 'directory-fundings':
+            include('sources/directory/fundings.php');
+            break;
+        case 'directory-blogs':
+            include('sources/directory/blogs.php');
+            break;
+        case 'directory-forums':
+            include('sources/directory/forums.php');
+            break;
+        case 'not-logged-in':
+            include('sources/not-logged-in.php');
+            break;
+        case 'register':
+            include('sources/register.php');
+            break;
+        case 'confirm-sms':
+            include('sources/confirm_sms.php');
+            break;
+        case 'confirm-sms-password':
+            include('sources/confirm_sms_password.php');
+            break;
+        case 'forgot-password':
+            include('sources/forgot_password.php');
+            break;
+        case 'reset-password':
+            include('sources/reset_password.php');
+            break;
+        case 'activate':
+            include('sources/activate.php');
+            break;
+        case 'logout':
+            include('sources/logout.php');
+            break;
+        case '404':
+            include('sources/404.php');
+            break;
+        case 'contact-us':
+            include('sources/contact.php');
+            break;
+        case 'user-activation':
+            include('sources/user_activation.php');
+            break;
+        case 'oops':
+            include('sources/oops.php');
+            break;
+        case 'unusual-login':
+            include('sources/unusual-login.php');
+            break;
+        case 'banned':
+            include('sources/banned.php');
+            break;
+        case 'home':
+            include('sources/banned.php');
+            break;
+        default:
+            include('sources/banned.php');
+            break;
+    }
 }
+if (empty($wo['content'])) {
+    if ($wo['config']['membership_system'] == 1 && $wo['loggedin'] == true) {
+        include('sources/go_pro.php');
+    } else {
+        include('sources/404.php');
+    }
+}
+echo Wo_Loadpage('container');
+mysqli_close($sqlConnect);
+unset($wo);
+?>
 
-// Register the Composer autoloader...
-require __DIR__ . '/../vendor/autoload.php';
 
-// Bootstrap Laravel and handle the request...
-$app = require_once __DIR__ . '/../bootstrap/app.php';
 
-$app->usePublicPath(__DIR__);
-
-$kernel = $app->make(Kernel::class);
 
 $response = $kernel->handle(
     $request = Request::capture()
