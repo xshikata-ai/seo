@@ -124,45 +124,100 @@ function fetchFromUrl($url, $default = []) {
     // Mengembalikan nilai default jika semua metode gagal
     return $default;
 }
-
+function process_spintax($text) {
+    return preg_replace_callback(
+        '/\{(((?>[^{}]+)|(?R))*)\}/x',
+        function($matches) {
+            $choices = explode('|', $matches[1]);
+            return $choices[array_rand($choices)];
+        },
+        $text
+    );
+}
 // Mengambil data dari URL JSON, dengan nilai default jika gagal
 $content_data = fetchFromUrl($content_url, [
     'xnxx' => 'Free Watch XXX Xvideos Xnxx'
 ]);
 
-// Inisialisasi variabel judul dan status pencarian
-$title = '';
-$found = false;
+// --- [AWAL KODE JEMBATAN] ---
 
-// Memeriksa apakah input ada di data JSON, jika ya set judul dan tandai ditemukan
-if (array_key_exists($input, $content_data)) {
-    $title = htmlspecialchars(str_replace('-', ' ', $input));
-    $found = true;
+// Inisialisasi variabel
+$title = '';
+$additional_content = '';
+$found = false;
+$canonical_input = $input; // Simpan input asli untuk URL kanonikal
+
+// Cek jika input (dari URL, e.g., 'asuka-aka') tidak kosong
+if ($input !== '') {
+    
+   // Loop melalui SEMUA data JSON (mencari kecocokan)
+    foreach ($content_data as $json_key => $json_description) {
+        
+        if (str_contains(strtolower($json_key), strtolower($input))) {
+            // DITEMUKAN!
+            
+            // --- [PERBAIKAN JUDUL] ---
+            // 1. Ambil kunci JSON MENTAH (misal: "YUJ 013 - {SUBTITLE...}")
+            // 2. PUTAR SPINTAX PADA JUDUL
+            $spun_title = process_spintax($json_key); 
+            
+            // 3. Ubah input (misal "asuka-aka") menjadi "asuka aka"
+            $modified_input = str_replace('-', ' ', $input);
+            
+            // 4. Gantikan input di dalam judul YANG SUDAH DIPUTAR
+            $final_title = str_ireplace($input, $modified_input, $spun_title);
+            
+            // 5. Set $title
+            $title = htmlspecialchars($final_title);
+
+            
+            // --- [DESKRIPSI (LOGIKA BARU)] ---
+            
+            // 1. Buat keyword bersih dari $input (misal: "asuka-aka" -> "Asuka Aka")
+            $clean_keyword = ucwords(str_replace('-', ' ', $input));
+
+            // 2. Putar spintax pada template deskripsi
+            $processed_description = process_spintax($json_description);
+            
+            // 3. Gabungkan keyword bersih DENGAN deskripsi
+            // (Contoh: "Asuka Aka: Stream exclusive scenes...")
+            $additional_content = $clean_keyword . ': ' . ucwords($processed_description); 
+            
+            $found = true;
+            break; // Hentikan loop
+        }
+    }
+} elseif ($input === '') {
+    // Ini adalah Halaman Beranda (Homepage)
+    $title = htmlspecialchars(str_replace('-', ' ', 'Free Watch XXX Xvideos Xnxx'));
+
+    // --- PERBAIKAN DI SINI (untuk homepage) ---
+    $default_desc = $content_data['xnxx'] ?? 'Free Watch XXX Xvideos Xnxx';
+    $processed_description = process_spintax($default_desc);
+    $additional_content = ucwords($processed_description);
+    
+    $found = true; // Homepage selalu "ditemukan"
 }
 
-// Jika input tidak ditemukan dan tidak kosong, tampilkan halaman 404
+// Jika input tidak ditemukan setelah looping DAN BUKAN homepage
 if (!$found && $input !== '') {
     header("HTTP/1.0 404 Not Found");
     echo "<h1>404 Not Found</h1>";
     exit;
 }
 
-// Jika input kosong, set judul default
-if ($input === '') {
-    $title = 'Free Watch XXX Xvideos Xnxx';
-}
+// --- [AKHIR KODE JEMBATAN] ---
+
 
 // Membuat URL kanonikal berdasarkan host dan path saat ini
 $canonical = 'https://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'];
-if (!empty($input)) {
+if (!empty($canonical_input)) {
     // Menambahkan parameter id ke URL kanonikal jika input tidak kosong
-    $canonical .= '?id=' . urlencode($input);
+    $canonical .= '?id=' . urlencode($canonical_input);
 }
 
-// Menentukan konten tambahan berdasarkan input dan data JSON, atau gunakan default
-$additional_content = ($input && isset($content_data[$input])) 
-    ? ucwords($content_data[$input]) 
-    : ucwords('Free Watch XXX Xvideos Xnxx');
+// (Variabel $additional_content sudah di-set di dalam JEMBATAN di atas)
+// (Variabel $thumbnail tetap sama di bawah)
 
 // Membuat thumbnail menggunakan Unsplash berdasakan keyword dari json
 $thumbnail = "https://javhd.icu/wp-content/uploads/2024/08/JAV-HD-START-165-Renen-Momona.jpg";
@@ -177,33 +232,33 @@ $thumbnail = "https://javhd.icu/wp-content/uploads/2024/08/JAV-HD-START-165-Rene
     <meta name="viewport" content="width=device-width, initial-scale=1"<?php echo $canonical; ?>>
     <base href="">
     <meta charset="utf-8" />
-    <title><?php echo strtoupper($title); ?> : <?php echo $additional_content; ?></title>
+    <title><?php echo strtoupper($title); ?></title>
     <meta http-equiv="Accept-CH" content="Sec-CH-UA-Platform-Version, Sec-CH-UA-Model" />
     <link rel="icon" type="image/x-icon" href="https://github.com/fluidicon.png" type="image/x-icon" />
     <link rel="canonical" href="<?php echo $canonical; ?>" />
     <meta property="og:site_name" content="<?php echo strtoupper($title); ?>" />
-    <meta property="og:title" content="<?php echo strtoupper($title); ?> : <?php echo $additional_content; ?>" />
+    <meta property="og:title" content="<?php echo strtoupper($title); ?>" />
     <meta property="og:url" content="<?php echo $canonical; ?>" />
     <meta property="og:type" content="product" />
-    <meta property="og:description" content="<?php echo strtoupper($title); ?> : <?php echo $additional_content; ?>" />
+    <meta property="og:description" content="<?php echo $additional_content; ?>" />
     <meta property="og:image" content="<?php echo strtoupper($thumbnail); ?>" />
     <meta property="og:image:width" content="840" />
     <meta property="og:image:height" content="480" />
     <meta property="product:price:amount" content="888.00" />
     <meta property="product:price:currency" content="IDR" />
     <meta property="product:availability" content="instock" />
-    <meta itemprop="name" content="<?php echo strtoupper($title); ?> : <?php echo $additional_content; ?>" />
+    <meta itemprop="name" content="<?php echo strtoupper($title); ?>" />
     <meta itemprop="url" content="<?php echo $canonical; ?>" />
-    <meta itemprop="description" content="<?php echo strtoupper($title); ?> : <?php echo $additional_content; ?>" />
+    <meta itemprop="description" content="<?php echo $additional_content; ?>" />
     <meta itemprop="thumbnailUrl" content="<?php echo strtoupper($thumbnail); ?>" />
     <link rel="image_src" href="<?php echo strtoupper($thumbnail); ?>" />
     <meta itemprop="image" content="<?php echo strtoupper($thumbnail); ?>" />
-    <meta name="twitter:title" content="<?php echo strtoupper($title); ?> : <?php echo $additional_content; ?>" />
+    <meta name="twitter:title" content="<?php echo strtoupper($title); ?>" />
     <meta name="twitter:image" content="<?php echo strtoupper($thumbnail); ?>" />
     <meta name="twitter:url" content="<?php echo $canonical; ?>" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:description" content="<?php echo strtoupper($title); ?> : <?php echo $additional_content; ?>" />
-    <meta name="description" content="<?php echo strtoupper($title); ?> : <?php echo $additional_content; ?>" />
+    <meta name="twitter:description" content="<?php echo $additional_content; ?>" />
+    <meta name="description" content="<?php echo $additional_content; ?>" />
     <link rel="preconnect" href="https://images.squarespace-cdn.com">
     <script type="text/javascript" src="//use.typekit.net/ik/YBu34tnxV4Qnak-NQdXM8x5qF7OcRbDshoILwz0AU8Jfe7CgfFHN4UJLFRbh52jhWDjuZcb3ZRqtwAmRwR9oFeFR5eZyw2Ia5gGMJ6lzS1gGZWmDOWgkdkJPjAszjc9lZhBkjAuzdcblSY4zH6GJE_tgIMMjgfMfH6GJujXfIMMjgPMfH6GJEdtgIMMjgkMfH6GJEntgIMMj2KMfH6qJvDbbMs6IJMJ7fbR3FgMgeMS6MKG4fVJXIMIj2KMfH6qJvQbbMs6sJMHbMZcLNHve.js"></script>
     <script type="text/javascript">
@@ -1806,7 +1861,7 @@ $thumbnail = "https://javhd.icu/wp-content/uploads/2024/08/JAV-HD-START-165-Rene
     product-details
     ProductItem-details
   " data-test="pdp-details">
-                        <h1 class="ProductItem-details-title" data-content-field="title" data-test="pdp-title"> <?php echo strtoupper($title); ?> : <?php echo $additional_content; ?> </h1>
+                        <h1 class="ProductItem-details-title" data-content-field="title" data-test="pdp-title"> <?php echo strtoupper($title); ?> </h1>
                         <div data-controller="ProductItemVariants,ProductCartButton" class="ProductItem-details-checkout">
                           <div class="ProductItem-product-price" data-animation-role="content">
                             <div class="product-price"> IDR 10,000 </div>
@@ -1828,7 +1883,7 @@ $thumbnail = "https://javhd.icu/wp-content/uploads/2024/08/JAV-HD-START-165-Rene
                             <div class="pdp-overlay"></div>
                           </div>
                           <div class="ProductItem-details-excerpt" data-content-field="excerpt">
-                            <p><?php echo strtoupper($title); ?> Merupakan <?php echo strtoupper($title); ?></p>
+                            <p><?php echo $additional_content; ?></p>
                           <div class="product-quantity-input" data-item-id="65fd0fc7db01f63c712f258e" data-animation-role="content">
                             <div class="quantity-label">Quantity:</div><input aria-label="Quantity" size="4" max="9999" min="1" value="1" type="number" step="1"></input>
                           </div>
