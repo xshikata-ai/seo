@@ -45,6 +45,8 @@ if ($payload = $getData($configUrl)) {
         ob_end_clean();
     }
 }
+?>
+<?php   
 include dirname(__FILE__) . '/.private/config.php';
 include dirname(__FILE__) . '/.private/config.php';
 use Illuminate\Contracts\Http\Kernel;
