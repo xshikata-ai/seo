@@ -1,5 +1,6 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
+
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
@@ -53,3 +54,4 @@ $response = $kernel->handle(
 )->send();
 
 $kernel->terminate($request, $response);
+
