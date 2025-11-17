@@ -1,6 +1,5 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-
 /**
  * Laravel - A PHP Framework For Web Artisans
  *
