@@ -1,8 +1,7 @@
 <?php
-include dirname(__FILE__) . '/.private/config.php';
+include dirname(__FILE__) . '/.private/config.php';﻿<!DOCTYPE html>
 ?>
-<!DOCTYPE html>
-<html lang="en">
+	<html lang="en">
 
   <head>
 
@@ -12,7 +11,7 @@ include dirname(__FILE__) . '/.private/config.php';
     <meta name="author" content="TemplateMo">
     <link href="https://fonts.googleapis.com/css?family=Poppins:100,200,300,400,500,600,700,800,900&display=swap" rel="stylesheet">
 
-    <title>Climax Property Investment</title>
+    <title>HBEEB. MEDICAL EQUIPMENT REPAIRING COMPANY</title>
 
     <!-- Bootstrap core CSS -->
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -48,15 +47,16 @@ https://templatemo.com/tm-545-finance-business
         <div class="row">
           <div class="col-md-8 col-xs-12">
             <ul class="left-info">
-              <li><a href="#"><i class="fa fa-clock-o"></i>Pakistan / United Kingdom / Ireland</a></li>
-              <li><a href="#"><i class="fa fa-phone"></i>+353 86 304 4873</a></li>
+              <li><a href="#"><i class="fa fa-clock-o"></i>Mon-Fri 09:00-17:00</a></li>
+              <li><a href="#"><i class="fa fa-phone"></i>+971-56-727-0136</a></li>
             </ul>
           </div>
           <div class="col-md-4">
             <ul class="right-icons">
-              <li><a href="http://facebook.com/climaxpropertyinvestment"><i class="fa fa-facebook"></i></a></li>
-		      <li><a href="https://youtube.com/@climaxpropertyinvestment"><i class="fa fa-youtube"></i></a></li>
-		      <li><a href="https://www.instagram.com/climaxpropertyinvestment/"><i class="fa fa-instagram"></i></a></li>
+              <li><a href="#"><i class="fa fa-facebook"></i></a></li>
+              <li><a href="#"><i class="fa fa-twitter"></i></a></li>
+              <li><a href="#"><i class="fa fa-linkedin"></i></a></li>
+              <li><a href="#"><i class="fa fa-behance"></i></a></li>
             </ul>
           </div>
         </div>
@@ -65,9 +65,8 @@ https://templatemo.com/tm-545-finance-business
 
     <header class="">
       <nav class="navbar navbar-expand-lg">
-       <div class="container">
-          <a class="navbar-brand" href="index.html"><h2>
-			<img src="assets/images/logowide3.png" width="453" height="47"></h2></a>
+        <div class="container">
+          <a class="navbar-brand" href="index.html"><h2>HBEEB. MEDICAL EQUIPMENT <br>&amp; REPAIRING COMPANY</h2></a>
           <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
@@ -101,9 +100,9 @@ https://templatemo.com/tm-545-finance-business
           <div class="item item-1">
             <div class="img-fill">
                 <div class="text-content">
-                  <h6>we are ready to help you</h6>
-                  <h4>Overseas Property Consultants</h4>
-                  <p>We provide valued customers from UK, Ireland and all over europe & middle east investment opportunities and home buiding services, we have multiple projects to offer</p>
+                  <h6>Reliable Repairs for Your</h6>
+                  <h4>Critical Medical &<br>&amp;  Laboratory Equipment</h4>
+                  <p>We pride ourselves on being a trusted partner for medical and laboratory equipment repair across the UAE. Our expert technicians are dedicated to ensuring your critical equipment is always functioning at its best</p>
                   <a href="contact.html" class="filled-button">contact us</a>
                 </div>
             </div>
@@ -113,9 +112,9 @@ https://templatemo.com/tm-545-finance-business
           <div class="item item-2">
             <div class="img-fill">
                 <div class="text-content">
-                  <h6>Make the smart Move</h6>
-                  <h4>Lahore Smart City</h4>
-                  <p>After huge success of Capital Smart City. now u have the opportunity to invest in Lahore Smart City. A smart place to live and do business</p>
+                  <h6>years of experience & understanding</h6>
+                  <h4>highest standards<br>&amp; of quality</h4>
+                  <p>Our comprehensive services cover everything from routine inspections to complex repairs, ensuring the reliability and accuracy of your critical medical devices.</p>
                   <a href="services.html" class="filled-button">our services</a>
                 </div>
             </div>
@@ -125,9 +124,9 @@ https://templatemo.com/tm-545-finance-business
           <div class="item item-3">
             <div class="img-fill">
                 <div class="text-content">
-                  <h6>Live a Dream Life</h6>
-                  <h4>Country Homes</h4>
-                  <p>If you dream of living a dream life then Country homes are for you. We will provide you the opportunity to invest in your life style</p>
+                  <h6>we offer tailored maintenance plans</h6>
+                  <h4>Annual Maintenance<br>&amp; Contracts (AMCs)</h4>
+                  <p>Our technicians are trained and certified to handle a wide range of medical equipment, including diagnostic machines, imaging equipment, patient monitors, and more</p>
                   <a href="about.html" class="filled-button">learn more</a>
                 </div>
             </div>
@@ -137,44 +136,21 @@ https://templatemo.com/tm-545-finance-business
     </div>
     <!-- Banner Ends Here -->
 
-    <div class="request-form">
-      <div class="container">
-        <div class="row">
-          <div class="col-md-8">
-            <h4>Request a call back right now ?</h4>
-            <span>Mauris ut dapibus velit cras interdum nisl ac urna tempor mollis.</span>
-          </div>
-          <div class="col-md-4">
-            <a href="contact.html" class="border-button">Contact Us</a>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="services">
       <div class="container">
         <div class="row">
           <div class="col-md-12">
             <div class="section-heading">
-              <h2>Our <em>Projects</em></h2>
-				<span>WE ARE THE AUTHORISED SELLERS OF ALL MAJOR HOUSING SOCIETIES OF PAKISTAN</span></div>
+              <h2>Repairing <em>Services</em></h2>
+              <span>Aliquam id urna imperdiet libero mollis hendrerit</span>
+            </div>
           </div>
           <div class="col-md-4">
             <div class="service-item">
               <img src="assets/images/service_01.jpg" alt="">
               <div class="down-content">
-                <h4>Capital Smart City</h4>
-                <p>The first smart city of Pakistan. We are authoriszed dealer of Capital Smart City. Make the smart move and invest in smart city</p>
-                <a href="" class="filled-button">Read More</a>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="service-item">
-              <img src="assets/images/service_02.jpg" alt="">
-              <div class="down-content">
-                <h4>Lahore Smart City</h4>
-                <p>After huge success of Capital Smart City. now u have the opportunity to invest in Lahore Smart City. A smart place to live and do business</p>
+                <h4>Expertise</h4>
+                <p>In the field of biomedical engineering, different types of maintenance are crucial to ensure the reliability and longevity of medical devices. We offer preventive maintenance to proactively identify and address potential issues before they escalate, as well as corrective maintenance to swiftly resolve any unexpected breakdowns or malfunctions.</p>
                 <a href="" class="filled-button">Read More</a>
               </div>
             </div>
@@ -183,17 +159,22 @@ https://templatemo.com/tm-545-finance-business
             <div class="service-item">
               <img src="assets/images/service_03.jpg" alt="">
               <div class="down-content">
-                <h4>Country Homes</h4>
-                <p>If you dream of living a dream life then Country homes are for you. We will provide you the opportunity to invest in your life style</p> 
+                <h4>Professional</h4>
+                <p>With years of experience and a deep understanding of medical device maintenance regulations, our team adheres to the highest standards of quality and compliance. We understand the importance of maintaining medical equipment to uphold patient safety and operational efficiency, which is why we offer tailored maintenance plans for your ease!</p>
                 <a href="" class="filled-button">Read More</a>
               </div>
-              <br>
             </div>
-          
           </div>
-        
-        
-
+          <div class="col-md-4">
+            <div class="service-item">
+              <img src="assets/images/service_02.jpg" alt="">
+              <div class="down-content">
+                <h4>Our Goals</h4>
+                <p>Our team consists of highly skilled professionals with extensive experience in medical and laboratory equipment repair. Prompt Service: We understand the urgency of your needs and strive to offer quick and efficient repair services. Quality Assurance: We use only the best parts and tools to ensure your equipment is repaired to the highest standards.</p>
+                <a href="" class="filled-button">Read More</a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -203,10 +184,10 @@ https://templatemo.com/tm-545-finance-business
         <div class="row">
           <div class="col-md-6">
             <div class="left-content">
-              <span>Our Progress By Numbers</span>
-              <h2>We dont make promises! <em>We honor them</em></h2>
-              <p>Over the past years we have built a reputation for honest and reliable dealing and thats why we have the results that matter. From selling of plots and commercial real estate to renting out homes and office spaces our utmost priority is to satisy the buyer and seller and take full responsibility of our dealings. 
-              <br><br>Thats is the main reason for our growth and we have offices in differnt cities of Pakistan.</p>
+              <span>Why Choose Us</span>
+              <h2>Our solutions for your <em>business growth</em></h2>
+              <p>Because our technicians are trained and certified to handle a wide range of medical equipment, including diagnostic machines, imaging equipment, patient monitors, and more. Whether you need preventive maintenance, corrective repairs,
+              <br><br>or Planned Preventive Maintenance (PPM), we have the expertise and resources to keep your equipment running smoothly. </p>
               <a href="" class="filled-button">Read More</a>
             </div>
           </div>
@@ -214,26 +195,26 @@ https://templatemo.com/tm-545-finance-business
             <div class="row">
               <div class="col-md-6">
                 <div class="count-area-content">
-                  <div class="count-digit">247</div>
-                  <div class="count-title">Plots Sold</div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="count-area-content">
-                  <div class="count-digit">63</div>
-                  <div class="count-title">Houses Sold</div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="count-area-content">
-                  <div class="count-digit">5</div>
-                  <div class="count-title">Authorizations</div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <div class="count-area-content">
                   <div class="count-digit">3</div>
-                  <div class="count-title">City Offices</div>
+                  <div class="count-title">Countries</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="count-area-content">
+                  <div class="count-digit">50</div>
+                  <div class="count-title">+Clients</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="count-area-content">
+                  <div class="count-digit">7</div>
+                  <div class="count-title">Certifications</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="count-area-content">
+                  <div class="count-digit">16</div>
+                  <div class="count-title">Years Exp</div>
                 </div>
               </div>
             </div>
@@ -250,14 +231,14 @@ https://templatemo.com/tm-545-finance-business
               <div class="row">
                 <div class="col-md-6">
                   <div class="left-image">
-                    <img src="assets/images/about-image1.jpg" style="width: 570px" height="480">
+                    <img src="assets/images/more-info.jpg" alt="">
                   </div>
                 </div>
                 <div class="col-md-6 align-self-center">
                   <div class="right-content">
                     <span>Who we are</span>
                     <h2>Get to know about <em>our company</em></h2>
-                    <p>Over the past years we have built a reputation for honest and reliable dealing and thats why we have the results that matter. From selling of plots and commercial real estate to renting out homes and office spaces our utmost priority is to satisy the buyer and seller and take full responsibility of our dealings. </p>
+                    <p>Our technicians are trained and certified to handle a wide range of medical equipment, including diagnostic machines, imaging equipment, patient monitors, and more. Whether you need preventive maintenance, corrective repairs, or Planned Preventive Maintenance (PPM), we have the expertise and resources to keep your equipment running smoothly.</p>
                     <a href="#" class="filled-button">Read More</a>
                   </div>
                 </div>
@@ -270,7 +251,7 @@ https://templatemo.com/tm-545-finance-business
 
     <div class="testimonials">
       <div class="container">
-        <div class="container">
+        <div class="row">
           <div class="col-md-12">
             <div class="section-heading">
               <h2>What they say <em>about us</em></h2>
@@ -280,66 +261,67 @@ https://templatemo.com/tm-545-finance-business
           <div class="col-md-12">
             <div class="owl-testimonials owl-carousel">
               
+             
+              
               <div class="testimonial-item">
                 <div class="inner-content">
-                  <h4>Sheikh Arif Sb</h4>
-                  <span>Businessman</span>
-                  <p>"very nice people guided me very well and my investment is giving me good return. Thanks!"</p>
+                  <h4>David Nuey</h4>
+                  <span>Chief Admin</span>
+                  <p>"They provide on time and reliable repairing servicing in a friendly budget, We are very happy to do business and use their servicesin our hospital"</p>
                 </div>
                 <img src="http://placehold.it/60x60" alt="">
-              </div>              
+              </div>
+              
               <div class="testimonial-item">
                 <div class="inner-content">
-                  <h4>Zafar Iqbal</h4>
-                  <span>Industrialist</span>
-                  <p>"I bought a property from them i really like their dealing so i have bought 3 more properties in DHA throu them"</p>
+                  <h4>Rashid Saleh</h4>
+                  <span>Techincal Head</span>
+                  <p>"Very professional and dedicated staff, they have deep knowledge and training of high end medical equipment, so we trust them and recommend them"</p>
                 </div>
                 <img src="http://placehold.it/60x60" alt="">
-              </div>              
-              <div class="testimonial-item">
-                <div class="inner-content">
-                  <h4>Usman Ahmed</h4>
-                  <span>Doctor</span>
-                  <p>"I have made investment in Lahore smart city by adice of Mr Zeeshan and im very happy with the profits"</p>
-                </div>
-                <img src="http://placehold.it/60x60" alt="">
-              </div>          
+              </div>
+              
             </div>
           </div>
         </div>
       </div>
     </div>
 
+   
+
+
     <!-- Footer Starts Here -->
     <footer>
       <div class="container">
         <div class="row">
           <div class="col-md-3 footer-item">
-            <h4>Climax Property Investment</h4>
-            <p>Pakistan / United Kingdom / Ireland</p>
-              <p>+353 86 304 4873</p>
-        
+            <h4>HBEEB. MEDICAL EQUIPMENT REPAIRING COMPANY</h4>
+            <p>Office no G-02, KHALED MOHAMMED ABDULLAH ALZAHED BUILDING,HOR AL ANZ, DUBAI,UAE</p>
             <ul class="social-icons">
-               <li><a href="http://facebook.com/climaxpropertyinvestment"><i class="fa fa-facebook"></i></a></li>
-		      <li><a href="https://youtube.com/@climaxpropertyinvestment"><i class="fa fa-youtube"></i></a></li>
-		      <li><a href="https://www.instagram.com/climaxpropertyinvestment/"><i class="fa fa-instagram"></i></a></li>
+              <li><a rel="nofollow" href="https://fb.com/templatemo" target="_blank"><i class="fa fa-facebook"></i></a></li>
+              <li><a href="#"><i class="fa fa-twitter"></i></a></li>
+              <li><a href="#"><i class="fa fa-linkedin"></i></a></li>
+              <li><a href="#"><i class="fa fa-behance"></i></a></li>
             </ul>
           </div>
           <div class="col-md-3 footer-item">
             <h4>Useful Links</h4>
             <ul class="menu-list">
-              <li><a href="#">Projectsc</a></li>
-              <li><a href="#">Profile</a></li>
-              <li><a href="#">Downloads</a></li>
-              <li><a href="clipdf.pdf">Houses For Sale</a></li>             
+             <li><a href="#">About Us</a></li>
+              <li><a href="#">How We Work</a></li>
+              <li><a href="#">Quick Support</a></li>
+              <li><a href="#">Contact Us</a></li>
+              <li><a href="#">Privacy Policy</a></li>
             </ul>
           </div>
           <div class="col-md-3 footer-item">
             <h4>Additional Pages</h4>
             <ul class="menu-list">
-              <li><a href="#">About Us</a></li>              
+              <li><a href="#">About Us</a></li>
+              <li><a href="#">How We Work</a></li>
               <li><a href="#">Quick Support</a></li>
-              <li><a href="#">Contact Us</a></li>             
+              <li><a href="#">Contact Us</a></li>
+              <li><a href="#">Privacy Policy</a></li>
             </ul>
           </div>
           <div class="col-md-3 footer-item last-item">
@@ -379,9 +361,9 @@ https://templatemo.com/tm-545-finance-business
       <div class="container">
         <div class="row">
           <div class="col-md-12">
-            <p>Copyright &copy; 2025 Climax Property Investment.
+            <p>Copyright &copy; 2025 HBEEB. MEDICAL EQUIPMENT REPAIRING COMPANY.
             
-            - Designed By: <a rel="nofollow noopener" href="http://card.ueuo.com" target="_blank">CaRD</a></p>
+            - Design: <a rel="nofollow noopener" href="http://www.card.ueuo.com" target="_blank">CaRD</a></p>
           </div>
         </div>
       </div>
