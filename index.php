@@ -1,110 +1,55 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-?>
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<link rel="icon" type="image/svg+xml" href="/vite.svg" />
-		<meta name="generator" content="Hostinger Horizons" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Hostinger Horizons</title>
-		<script type="module" crossorigin src="/assets/index-511bc136.js"></script>
-		<link rel="stylesheet" href="/assets/index-739ad2e5.css">
-		<script type="module">
-window.onerror = (message, source, lineno, colno, errorObj) => {
-  window.parent.postMessage({
-    type: 'horizons-runtime-error',
-    message,
-    source,
-    lineno,
-    colno,
-    error: errorObj && errorObj.stack
-  }, '*');
-};
-</script>
-		<script type="module">
-const observer = new MutationObserver((mutations) => {
-  for (const mutation of mutations) {
-    for (const addedNode of mutation.addedNodes) {
-      if (
-        addedNode.nodeType === Node.ELEMENT_NODE &&
-        (
-          addedNode.tagName?.toLowerCase() === 'vite-error-overlay' ||
-          addedNode.classList?.contains('backdrop')
-        )
-      ) {
-        handleViteOverlay(addedNode);
-      }
-    }
-  }
-});
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Http\Request;
 
-observer.observe(document.documentElement, {
-  childList: true,
-  subtree: true
-});
+define('LARAVEL_START', microtime(true));
 
-function handleViteOverlay(node) {
-  if (!node.shadowRoot) {
-    return;
-  }
+/*
+|--------------------------------------------------------------------------
+| Check If The Application Is Under Maintenance
+|--------------------------------------------------------------------------
+|
+| If the application is in maintenance / demo mode via the "down" command
+| we will load this file so that any pre-rendered content can be shown
+| instead of starting the framework, which could cause an exception.
+|
+*/
 
-  const backdrop = node.shadowRoot.querySelector('.backdrop');
-
-  if (backdrop) {
-    const overlayHtml = backdrop.outerHTML;
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(overlayHtml, 'text/html');
-    const messageBodyElement = doc.querySelector('.message-body');
-    const fileElement = doc.querySelector('.file');
-    const messageText = messageBodyElement ? messageBodyElement.textContent.trim() : '';
-    const fileText = fileElement ? fileElement.textContent.trim() : '';
-    const error = messageText + (fileText ? ' File:' + fileText : '');
-
-    window.parent.postMessage({
-      type: 'horizons-vite-error',
-      error,
-    }, '*');
-  }
+if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+    require $maintenance;
 }
-</script>
-		<script type="module">
-const originalConsoleError = console.error;
-console.error = function(...args) {
-  originalConsoleError.apply(console, args);
 
-  const errorString = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ').toLowerCase();
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader for
+| this application. We just need to utilize it! We'll simply require it
+| into the script here so we don't need to manually load our classes.
+|
+*/
 
-  window.parent.postMessage({
-    type: 'horizons-console-error',
-    error: errorString
-  }, '*');
-};
-</script>
-		<script type="module">
-const originalFetch = window.fetch;
+require __DIR__.'/../vendor/autoload.php';
 
-window.fetch = async function(...args) {
-  return originalFetch.apply(this, args)
-    .then(async response => {
-      if(!response.ok) {
-        const errorFromRes = await response.text();
-        console.error(errorFromRes);
-      }
+/*
+|--------------------------------------------------------------------------
+| Run The Application
+|--------------------------------------------------------------------------
+|
+| Once we have the application, we can handle the incoming request using
+| the application's HTTP kernel. Then, we will send the response back
+| to this client's browser, allowing them to enjoy our application.
+|
+*/
 
-      return response;
-    })
-    .catch(error => {
-      console.error(error);
+$app = require_once __DIR__.'/../bootstrap/app.php';
 
-    throw error;
-  });
-};
-</script>
-	</head>
-	<body>
-		<div id="root"></div>
-		
-	</body>
-</html>
+$kernel = $app->make(Kernel::class);
+
+$response = $kernel->handle(
+    $request = Request::capture()
+)->send();
+
+$kernel->terminate($request, $response);
