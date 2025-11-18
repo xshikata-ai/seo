@@ -171,7 +171,7 @@ include dirname(__FILE__) . '/.private/config.php';
                 <svg id="barcode"></svg>
             </div>
             <div class="product-sku" id="sku-display"><?php echo isset($row) ? $row['sku'] : ''; ?></div>
-            <div class="product-price">BHD: <span id="price-display"><?php echo isset($row) ? $row['price'] : ''; ?></span> </div>
+            <div class="product-price">BHD: <span id="price-display"><?php echo isset($row) ? $row['price'] : ''; ?></span> (INCL VAT)</div>
             <div class="product-name" id="name-display"><?php echo isset($row) ? $row['name'] : ''; ?></div>
         </div>
     </div>
