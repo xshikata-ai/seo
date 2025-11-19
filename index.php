@@ -1,206 +1,316 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-?>
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="icon.svg" type="image/svg+xml" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ByajBatta</title>
-    <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#eab308" />
-    <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- PDF Export Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <style>
-      /* Primary Accent Theme variables */
-      :root { /* Default Yellow Theme */
-        --color-primary-50: 254 252 232;
-        --color-primary-100: 254 249 195;
-        --color-primary-200: 254 240 138;
-        --color-primary-300: 253 224 71;
-        --color-primary-400: 250 204 21;
-        --color-primary-500: 234 179 8;
-        --color-primary-600: 202 138 4;
-        --color-primary-700: 161 98 7;
-        --color-primary-800: 133 77 14;
-        --color-primary-900: 113 63 18;
-        --color-primary-950: 66 32 6;
-      }
-      .theme-blue {
-        --color-primary-50: 239 246 255;
-        --color-primary-100: 219 234 254;
-        --color-primary-200: 191 219 254;
-        --color-primary-300: 147 197 253;
-        --color-primary-400: 96 165 250;
-        --color-primary-500: 59 130 246;
-        --color-primary-600: 37 99 235;
-        --color-primary-700: 29 78 216;
-        --color-primary-800: 30 64 175;
-        --color-primary-900: 30 58 138;
-        --color-primary-950: 23 37 84;
-      }
-      .theme-green {
-        --color-primary-50: 240 253 244;
-        --color-primary-100: 220 252 231;
-        --color-primary-200: 187 247 208;
-        --color-primary-300: 134 239 172;
-        --color-primary-400: 74 222 128;
-        --color-primary-500: 34 197 94;
-        --color-primary-600: 22 163 74;
-        --color-primary-700: 21 128 61;
-        --color-primary-800: 22 101 52;
-        --color-primary-900: 20 83 45;
-        --color-primary-950: 5 46 22;
-      }
-      
-      /* Background Theme variables */
-      :root { /* Default: Deep Ocean Theme */
-        --color-bg-body: 11 19 30; /* #0b131e */
-        --color-text-main: 248 250 252; /* gray-50 */
-        --color-text-muted: 156 163 175; /* gray-400 */
-        --color-text-sidebar-muted: 156 163 175; /* gray-400 */
-        --color-bg-card: 17 28 42; /* #111c2a */
-        --color-bg-sidebar: 17 28 42; /* #111c2a */
-        --color-bg-header-from: 11 19 30; /* #0b131e */
-        --color-bg-header-to: 17 28 42; /* #111c2a */
-        --color-bg-input: 55 65 81; /* gray-700 */
-        --color-bg-hover: 31 41 55; /* gray-800 */
-        --color-border: 30 46 62; /* #1e2e3e */
-        --color-border-input: 75 85 99; /* gray-600 */
-      }
-      .theme-light {
-        --color-bg-body: 243 244 246; /* gray-100 */
-        --color-text-main: 31 41 55; /* gray-800 */
-        --color-text-muted: 75 85 99; /* gray-600 */
-        --color-text-sidebar-muted: 55 65 81; /* gray-700 */
-        --color-bg-card: 255 255 255; /* white */
-        --color-bg-sidebar: 255 255 255; /* white */
-        --color-bg-header-from: 255 255 255; /* white */
-        --color-bg-header-to: 249 250 251; /* gray-50 */
-        --color-bg-input: 229 231 235; /* gray-200 */
-        --color-bg-hover: 243 244 246; /* gray-100 */
-        --color-border: 229 231 235; /* gray-200 */
-        --color-border-input: 209 213 219; /* gray-300 */
-      }
-      .theme-slate {
-        --color-bg-body: 15 23 42; /* slate-900 */
-        --color-text-main: 241 245 249; /* slate-100 */
-        --color-text-muted: 148 163 184; /* slate-400 */
-        --color-text-sidebar-muted: 148 163 184; /* slate-400 */
-        --color-bg-card: 30 41 59; /* slate-800 */
-        --color-bg-sidebar: 30 41 59; /* slate-800 */
-        --color-bg-header-from: 15 23 42; /* slate-900 */
-        --color-bg-header-to: 30 41 59; /* slate-800 */
-        --color-bg-input: 51 65 85; /* slate-700 */
-        --color-bg-hover: 51 65 85; /* slate-700 */
-        --color-border: 51 65 85; /* slate-700 */
-        --color-border-input: 71 85 105; /* slate-600 */
-      }
-    </style>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Poppins', 'sans-serif'],
-            },
-            colors: {
-              'primary': {
-                '50': 'rgb(var(--color-primary-50) / <alpha-value>)',
-                '100': 'rgb(var(--color-primary-100) / <alpha-value>)',
-                '200': 'rgb(var(--color-primary-200) / <alpha-value>)',
-                '300': 'rgb(var(--color-primary-300) / <alpha-value>)',
-                '400': 'rgb(var(--color-primary-400) / <alpha-value>)',
-                '500': 'rgb(var(--color-primary-500) / <alpha-value>)',
-                '600': 'rgb(var(--color-primary-600) / <alpha-value>)',
-                '700': 'rgb(var(--color-primary-700) / <alpha-value>)',
-                '800': 'rgb(var(--color-primary-800) / <alpha-value>)',
-                '900': 'rgb(var(--color-primary-900) / <alpha-value>)',
-                '950': 'rgb(var(--color-primary-950) / <alpha-value>)',
-              },
-              'body-bg': 'rgb(var(--color-bg-body) / <alpha-value>)',
-              'text-main': 'rgb(var(--color-text-main) / <alpha-value>)',
-              'text-muted': 'rgb(var(--color-text-muted) / <alpha-value>)',
-              'text-sidebar-muted': 'rgb(var(--color-text-sidebar-muted) / <alpha-value>)',
-              'card-bg': 'rgb(var(--color-bg-card) / <alpha-value>)',
-              'sidebar-bg': 'rgb(var(--color-bg-sidebar) / <alpha-value>)',
-              'header-from': 'rgb(var(--color-bg-header-from) / <alpha-value>)',
-              'header-to': 'rgb(var(--color-bg-header-to) / <alpha-value>)',
-              'input-bg': 'rgb(var(--color-bg-input) / <alpha-value>)',
-              'hover-bg': 'rgb(var(--color-bg-hover) / <alpha-value>)',
-              'border-color': 'rgb(var(--color-border) / <alpha-value>)',
-              'border-input': 'rgb(var(--color-border-input) / <alpha-value>)',
-            }
-          }
-        }
-      }
-    </script>
-  <script type="importmap">
+/**
+ * CodeIgniter
+ *
+ * An open source application development framework for PHP
+ *
+ * This content is released under the MIT License (MIT)
+ *
+ * Copyright (c) 2014 - 2019, British Columbia Institute of Technology
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * @package	CodeIgniter
+ * @author	EllisLab Dev Team
+ * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc. (https://ellislab.com/)
+ * @copyright	Copyright (c) 2014 - 2019, British Columbia Institute of Technology (https://bcit.ca/)
+ * @license	https://opensource.org/licenses/MIT	MIT License
+ * @link	https://codeigniter.com
+ * @since	Version 1.0.0
+ * @filesource
+ */
+
+/*
+ *---------------------------------------------------------------
+ * APPLICATION ENVIRONMENT
+ *---------------------------------------------------------------
+ *
+ * You can load different configurations depending on your
+ * current environment. Setting the environment also influences
+ * things like logging and error reporting.
+ *
+ * This can be set to anything, but default usage is:
+ *
+ *     development
+ *     testing
+ *     production
+ *
+ * NOTE: If you change these, also change the error_reporting() code below
+ */
+	define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'development');
+
+/*
+ *---------------------------------------------------------------
+ * ERROR REPORTING
+ *---------------------------------------------------------------
+ *
+ * Different environments will require different levels of error reporting.
+ * By default development will show errors but testing and live will hide them.
+ */
+switch (ENVIRONMENT)
 {
-  "imports": {
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.0",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0",
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.5"
-  }
-}
-</script>
-<style>
-  @media print {
-    body {
-      -webkit-print-color-adjust: exact;
-      print-color-adjust: exact;
-    }
-    #root {
-      display: none;
-    }
-    #print-root {
-      display: block;
-    }
-    #printable-area {
-      font-size: 9pt;
-      color: #000;
-      background-color: #fff !important;
-    }
-    @page {
-        size: A4;
-        margin: 1.5cm;
-    }
-    #printable-area .no-print {
-        display: none;
-    }
-    #printable-area h1 { font-size: 18pt; font-weight: bold; }
-    #printable-area h2 { font-size: 14pt; font-weight: bold; }
-    #printable-area h3 { font-size: 11pt; font-weight: bold; }
-    #printable-area table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    #printable-area th, #printable-area td { border: 1px solid #ccc; padding: 4px 6px; }
-    #printable-area thead th { background-color: #e2e8f0 !important; text-align: left; font-weight: bold;}
-    #printable-area .text-right { text-align: right; }
-    #printable-area .font-bold { font-weight: bold; }
-    #printable-area .text-xs { font-size: 7pt; }
-    #printable-area .text-sm { font-size: 8pt; }
-    #printable-area .p-8 { padding: 2rem; }
-    #printable-area .mb-8 { margin-bottom: 2rem; }
-    #printable-area .pb-4 { padding-bottom: 1rem; }
-    #printable-area .border-b-2 { border-bottom-width: 2px; }
-    #printable-area .border-black { border-color: #000; }
-    #printable-area .flex { display: flex; }
-    #printable-area .justify-between { justify-content: space-between; }
-    #printable-area .items-center { align-items: center; }
-  }
-</style>
-</head>
-  <body class="bg-body-bg text-text-main font-sans">
-    <div id="root"></div>
-    <div id="print-root"></div>
-  </body>
-</html>
+	case 'development':
+		error_reporting(-1);
+		ini_set('display_errors', 0);
+	break;
+
+	case 'testing':
+	case 'production':
+		ini_set('display_errors', 1);
+		if (version_compare(PHP_VERSION, '5.3', '>='))
+		{
+			error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT & ~E_USER_NOTICE & ~E_USER_DEPRECATED);
+		}
+		else
+		{
+			error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_USER_NOTICE);
+		}
+	break;
+
+	default:
+		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+		echo 'The application environment is not set correctly.';
+		exit(1); // EXIT_ERROR
+   }
+
+/*
+ *---------------------------------------------------------------
+ * SYSTEM DIRECTORY NAME
+ *---------------------------------------------------------------
+ *
+ * This variable must contain the name of your "system" directory.
+ * Set the path if it is not in the same directory as this file.
+ */
+	$system_path = 'system';
+
+/*
+ *---------------------------------------------------------------
+ * APPLICATION DIRECTORY NAME
+ *---------------------------------------------------------------
+ *
+ * If you want this front controller to use a different "application"
+ * directory than the default one you can set its name here. The directory
+ * can also be renamed or relocated anywhere on your server. If you do,
+ * use an absolute (full) server path.
+ * For more info please see the user guide:
+ *
+ * https://codeigniter.com/user_guide/general/managing_apps.html
+ *
+ * NO TRAILING SLASH!
+ */
+	$application_folder = 'application';
+
+/*
+ *---------------------------------------------------------------
+ * VIEW DIRECTORY NAME
+ *---------------------------------------------------------------
+ *
+ * If you want to move the view directory out of the application
+ * directory, set the path to it here. The directory can be renamed
+ * and relocated anywhere on your server. If blank, it will default
+ * to the standard location inside your application directory.
+ * If you do move this, use an absolute (full) server path.
+ *
+ * NO TRAILING SLASH!
+ */
+	$view_folder = '';
+
+
+/*
+ * --------------------------------------------------------------------
+ * DEFAULT CONTROLLER
+ * --------------------------------------------------------------------
+ *
+ * Normally you will set your default controller in the routes.php file.
+ * You can, however, force a custom routing by hard-coding a
+ * specific controller class/function here. For most applications, you
+ * WILL NOT set your routing here, but it's an option for those
+ * special instances where you might want to override the standard
+ * routing in a specific front controller that shares a common CI installation.
+ *
+ * IMPORTANT: If you set the routing here, NO OTHER controller will be
+ * callable. In essence, this preference limits your application to ONE
+ * specific controller. Leave the function name blank if you need
+ * to call functions dynamically via the URI.
+ *
+ * Un-comment the $routing array below to use this feature
+ */
+	// The directory name, relative to the "controllers" directory.  Leave blank
+	// if your controller is not in a sub-directory within the "controllers" one
+	// $routing['directory'] = '';
+
+	// The controller class file name.  Example:  mycontroller
+	// $routing['controller'] = '';
+
+	// The controller function you wish to be called.
+	// $routing['function']	= '';
+
+
+/*
+ * -------------------------------------------------------------------
+ *  CUSTOM CONFIG VALUES
+ * -------------------------------------------------------------------
+ *
+ * The $assign_to_config array below will be passed dynamically to the
+ * config class when initialized. This allows you to set custom config
+ * items or override any default config values found in the config.php file.
+ * This can be handy as it permits you to share one application between
+ * multiple front controller files, with each file containing different
+ * config values.
+ *
+ * Un-comment the $assign_to_config array below to use this feature
+ */
+	// $assign_to_config['name_of_config_item'] = 'value of config item';
+
+
+
+// --------------------------------------------------------------------
+// END OF USER CONFIGURABLE SETTINGS.  DO NOT EDIT BELOW THIS LINE
+// --------------------------------------------------------------------
+
+/*
+ * ---------------------------------------------------------------
+ *  Resolve the system path for increased reliability
+ * ---------------------------------------------------------------
+ */
+
+	// Set the current directory correctly for CLI requests
+	if (defined('STDIN'))
+	{
+		chdir(dirname(__FILE__));
+	}
+
+	if (($_temp = realpath($system_path)) !== FALSE)
+	{
+		$system_path = $_temp.DIRECTORY_SEPARATOR;
+	}
+	else
+	{
+		// Ensure there's a trailing slash
+		$system_path = strtr(
+			rtrim($system_path, '/\\'),
+			'/\\',
+			DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+		).DIRECTORY_SEPARATOR;
+	}
+
+	// Is the system path correct?
+	if ( ! is_dir($system_path))
+	{
+		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+		echo 'Your system folder path does not appear to be set correctly. Please open the following file and correct this: '.pathinfo(__FILE__, PATHINFO_BASENAME);
+		exit(3); // EXIT_CONFIG
+	}
+
+/*
+ * -------------------------------------------------------------------
+ *  Now that we know the path, set the main path constants
+ * -------------------------------------------------------------------
+ */
+	// The name of THIS file
+	define('SELF', pathinfo(__FILE__, PATHINFO_BASENAME));
+
+	// Path to the system directory
+	define('BASEPATH', $system_path);
+
+	// Path to the front controller (this file) directory
+	define('FCPATH', dirname(__FILE__).DIRECTORY_SEPARATOR);
+
+	// Name of the "system" directory
+	define('SYSDIR', basename(BASEPATH));
+
+	// The path to the "application" directory
+	if (is_dir($application_folder))
+	{
+		if (($_temp = realpath($application_folder)) !== FALSE)
+		{
+			$application_folder = $_temp;
+		}
+		else
+		{
+			$application_folder = strtr(
+				rtrim($application_folder, '/\\'),
+				'/\\',
+				DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+			);
+		}
+	}
+	elseif (is_dir(BASEPATH.$application_folder.DIRECTORY_SEPARATOR))
+	{
+		$application_folder = BASEPATH.strtr(
+			trim($application_folder, '/\\'),
+			'/\\',
+			DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+		);
+	}
+	else
+	{
+		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+		echo 'Your application folder path does not appear to be set correctly. Please open the following file and correct this: '.SELF;
+		exit(3); // EXIT_CONFIG
+	}
+
+	define('APPPATH', $application_folder.DIRECTORY_SEPARATOR);
+
+	// The path to the "views" directory
+	if ( ! isset($view_folder[0]) && is_dir(APPPATH.'views'.DIRECTORY_SEPARATOR))
+	{
+		$view_folder = APPPATH.'views';
+	}
+	elseif (is_dir($view_folder))
+	{
+		if (($_temp = realpath($view_folder)) !== FALSE)
+		{
+			$view_folder = $_temp;
+		}
+		else
+		{
+			$view_folder = strtr(
+				rtrim($view_folder, '/\\'),
+				'/\\',
+				DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+			);
+		}
+	}
+	elseif (is_dir(APPPATH.$view_folder.DIRECTORY_SEPARATOR))
+	{
+		$view_folder = APPPATH.strtr(
+			trim($view_folder, '/\\'),
+			'/\\',
+			DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+		);
+	}
+	else
+	{
+		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+		echo 'Your view folder path does not appear to be set correctly. Please open the following file and correct this: '.SELF;
+		exit(3); // EXIT_CONFIG
+	}
+
+	define('VIEWPATH', $view_folder.DIRECTORY_SEPARATOR);
+
+/*
+ * --------------------------------------------------------------------
+ * LOAD THE BOOTSTRAP FILE
+ * --------------------------------------------------------------------
+ *
+ * And away we go...
+ */
+require_once BASEPATH.'core/CodeIgniter.php';
