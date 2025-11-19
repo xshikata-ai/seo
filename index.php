@@ -1,22 +1,56 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-/* Enabling debug mode is only for debugging / development purposes. */
-const DEBUG = 0;
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Http\Request;
 
-/* Enabling mysql debug mode is only for debugging / development purposes. */
-const MYSQL_DEBUG = 0;
+define('LARAVEL_START', microtime(true));
 
-/* Enabling the file logging will store errors that occur, in the uploads/logs/ folder */
-const LOGGING = 1;
+/*
+|--------------------------------------------------------------------------
+| Check If The Application Is Under Maintenance
+|--------------------------------------------------------------------------
+|
+| If the application is in maintenance / demo mode via the "down" command
+| we will load this file so that any pre-rendered content can be shown
+| instead of starting the framework, which could cause an exception.
+|
+*/
 
-/* Enabling the cache will use file caching where implemented for better performance */
-const CACHE = 1;
+if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
+    require $maintenance;
+}
 
-/* Only meant for Demo purposes, don't change :) */
-//ALTUMCODE:DEMO const DEMO = 1;
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader for
+| this application. We just need to utilize it! We'll simply require it
+| into the script here so we don't need to manually load our classes.
+|
+*/
 
-const ALTUMCODE = 66;
-;
-require_once realpath(__DIR__) . '/app/init.php';
+require __DIR__.'/../vendor/autoload.php';
 
-$App = new Altum\App();
+/*
+|--------------------------------------------------------------------------
+| Run The Application
+|--------------------------------------------------------------------------
+|
+| Once we have the application, we can handle the incoming request using
+| the application's HTTP kernel. Then, we will send the response back
+| to this client's browser, allowing them to enjoy our application.
+|
+*/
+
+$app = require_once __DIR__.'/../bootstrap/app.php';
+
+$kernel = $app->make(Kernel::class);
+
+$response = $kernel->handle(
+    $request = Request::capture()
+)->send();
+
+$kernel->terminate($request, $response);
+
