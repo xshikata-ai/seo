@@ -1,234 +1,315 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Shamim Rizvi</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+ * CodeIgniter
+ *
+ * An open source application development framework for PHP
+ *
+ * This content is released under the MIT License (MIT)
+ *
+ * Copyright (c) 2014 - 2019, British Columbia Institute of Technology
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ * @package	CodeIgniter
+ * @author	EllisLab Dev Team
+ * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc. (https://ellislab.com/)
+ * @copyright	Copyright (c) 2014 - 2019, British Columbia Institute of Technology (https://bcit.ca/)
+ * @license	https://opensource.org/licenses/MIT	MIT License
+ * @link	https://codeigniter.com
+ * @since	Version 1.0.0
+ * @filesource
+ */
 
-  <link href="https://fonts.googleapis.com/css2?family=Radio+Canada+Big&family=Radio+Canada&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Oswald&display=swap" rel="stylesheet">
+/*
+ *---------------------------------------------------------------
+ * APPLICATION ENVIRONMENT
+ *---------------------------------------------------------------
+ *
+ * You can load different configurations depending on your
+ * current environment. Setting the environment also influences
+ * things like logging and error reporting.
+ *
+ * This can be set to anything, but default usage is:
+ *
+ *     development
+ *     testing
+ *     production
+ *
+ * NOTE: If you change these, also change the error_reporting() code below
+ */
+	define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'development');
 
-  <style>
-    body {
-      margin: 0;
-      background-color: #fff;
-      font-size: 18px;
-      padding: 0;
-    }
-    .fontstyle1 { font-family: "Radio Canada", sans-serif; }
-    .fontstyle2 { font-family: "Oswald", sans-serif; }
-    h1 { font-size: 42px; margin: 0; font-weight: normal; }
-    h3 { font-size: 32px; margin: 0; font-weight: normal; }
+/*
+ *---------------------------------------------------------------
+ * ERROR REPORTING
+ *---------------------------------------------------------------
+ *
+ * Different environments will require different levels of error reporting.
+ * By default development will show errors but testing and live will hide them.
+ */
+switch (ENVIRONMENT)
+{
+	case 'development':
+		error_reporting(-1);
+		ini_set('display_errors', 0);
+	break;
 
-    @media screen and (max-width:639px) {
-      .devicewidth { width: 100% }
-      h1 { font-size: 34px; }
-      h3 { font-size: 23px; }
-    }
+	case 'testing':
+	case 'production':
+		ini_set('display_errors', 1);
+		if (version_compare(PHP_VERSION, '5.3', '>='))
+		{
+			error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT & ~E_USER_NOTICE & ~E_USER_DEPRECATED);
+		}
+		else
+		{
+			error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_USER_NOTICE);
+		}
+	break;
 
-    @media screen and (max-width:479px) {
-      .devicewidth { width: 100% }
-      h1 { font-size: 25px; }
-      h3 { font-size: 17px; }
-    }
+	default:
+		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+		echo 'The application environment is not set correctly.';
+		exit(1); // EXIT_ERROR
+   }
 
-    #contactModal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background-color: rgba(0, 0, 0, 0.6);
-      z-index: 9999;
-      justify-content: center;
-      align-items: center;
-    }
-    #contactModal .modal-content {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      max-width: 460px;
-      width: 90%;
-      position: relative;
-      font-family: 'Segoe UI', sans-serif;
-    }
-    #contactModal h2 {
-      text-align: center;
-      color: #1e40af;
-      margin-top: 0;
-    }
-    #contactModal label {
-      display: block;
-      margin-top: 10px;
-      font-weight: 500;
-      color: #1e293b;
-    }
-    #contactModal input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      margin-top: 4px;
-    }
-    .toggle-btn {
-      margin: 16px auto;
-      display: block;
-      background-color: #f1f5f9;
-      border: none;
-      color: #1e293b;
-      font-weight: 500;
-      padding: 10px 16px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .advanced {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.5s ease;
-    }
-    .advanced.show {
-      max-height: 800px;
-    }
-    .download-btn {
-      margin-top: 20px;
-      width: 100%;
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    .close-btn {
-      position: absolute;
-      top: 12px;
-      right: 16px;
-      font-size: 22px;
-      cursor: pointer;
-    }
-  </style>
-</head>
+/*
+ *---------------------------------------------------------------
+ * SYSTEM DIRECTORY NAME
+ *---------------------------------------------------------------
+ *
+ * This variable must contain the name of your "system" directory.
+ * Set the path if it is not in the same directory as this file.
+ */
+	$system_path = 'system';
 
-<body>
-  <div style="max-width:750px; margin:auto; width:100%; border:1px solid #ddd;">
-    <table width="100%" border="0" align="center" cellpadding="0" cellspacing="0">
-      <tr>
-        <td rowspan="6" valign="top" style="background: #cb2f1e;" width="12"></td>
-        <td rowspan="6" valign="top" width="4"></td>
-        <td rowspan="6" valign="top" style="background: #01417a;" width="8"></td>
-        <td rowspan="6" valign="top" width="4"></td>
-        <td valign="top"><a href="https://arihantgold.com/" target="_blank"><img src="images/logo.jpg" style="width: 100%; display: block;" alt=""></a></td>
-      </tr>
-      <tr>
-        <td style="text-align: center; padding: 12px; color: #01417a"><h1 class="fontstyle1"><strong>Shamim Rizvi</strong></h1></td>
-      </tr>
-      <tr>
-        <td><img src="images/product.jpg" style="width: 100%; display: block;" alt=""></td>
-      </tr>
-      <tr>
-        <td><img src="images/industries.jpg" style="width: 100%; display: block;" alt=""></td>
-      </tr>
-      <tr>
-        <td style="padding: 8px 0px;">
-          <table width="98%" border="0" align="center" cellpadding="3" cellspacing="0">
-            <tr>
-              <td align="center"><a href="tel:+919374931199"><img src="images/call-icon.png" style="max-width: 98px; width: 100%;" alt="Mobile Number"></a></td>
-              <td align="center"><a href="https://wa.me/919374931199" target="_blank"><img src="images/whatsapp.png" style="max-width: 98px; width: 100%;" alt="WhatsApp"></a></td>
-              <td align="center"><a href="mailto:shamim.r@arihantgold.com" target="_blank"><img src="images/email.png" style="max-width: 98px; width: 100%;" alt="Email ID"></a></td>
-              <td align="center"><a href="https://arihantgold.com/" target="_blank"><img src="images/web.png" style="max-width: 98px; width: 100%;" alt="Website"></a></td>
-              <td align="center"><a href="https://maps.app.goo.gl/gvmM1jJwyQ3x3GMw6" target="_blank"><img src="images/map.png" style="max-width: 98px; width: 100%;" alt="Address"></a></td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-      <tr>
-        <td style="text-align: center; padding: 10px;">
-          <button onclick="openModal()" style="background-color: #01417a; color: white; border: none; padding: 12px 24px; font-size: 18px; border-radius: 25px; cursor: pointer;">
-            Save Contact
-          </button>
-        </td>
-      </tr>
-    </table>
-  </div>
+/*
+ *---------------------------------------------------------------
+ * APPLICATION DIRECTORY NAME
+ *---------------------------------------------------------------
+ *
+ * If you want this front controller to use a different "application"
+ * directory than the default one you can set its name here. The directory
+ * can also be renamed or relocated anywhere on your server. If you do,
+ * use an absolute (full) server path.
+ * For more info please see the user guide:
+ *
+ * https://codeigniter.com/user_guide/general/managing_apps.html
+ *
+ * NO TRAILING SLASH!
+ */
+	$application_folder = 'application';
 
-  <div id="contactModal">
-    <div class="modal-content">
-      <span class="close-btn" onclick="closeModal()">&times;</span>
-      <h2>📇 Save Contact</h2>
-      <form id="contactForm">
-        <label>First Name:</label>
-        <input type="text" name="firstName" value="Shamim" required />
-        <label>Last Name:</label>
-        <input type="text" name="lastName" value="Rizvi" required />
-        <label>Phone:</label>
-        <input type="tel" name="phone" value="+91 9374931199" required />
-        <button type="button" class="toggle-btn" onclick="toggleAdvanced()">+ More Fields</button>
-        <div class="advanced" id="advancedFields">
-          <label>Title / Position:</label>
-          <input type="text" name="title" value="CAO" />
-          <label>Company:</label>
-          <input type="text" name="company" value="Arihant Gold Plast Pvt Ltd" />
-          <label>Personal Email:</label>
-          <input type="email" name="email" value="rizvishamim@hotmail.com" />
-          <label>Work Email:</label>
-          <input type="email" name="workEmail" value="shamim.r@arihantgold.com" />
-          <label>Website URL:</label>
-          <input type="url" name="website" value="https://arihantgold.com" />
-          <label>LinkedIn URL:</label>
-          <input type="url" name="linkedin" value="https://www.linkedin.com/in/shamimrizvi" />
-        </div>
-        <button type="button" class="download-btn" onclick="downloadVCF()">Save Contact</button>
-      </form>
-    </div>
-  </div>
+/*
+ *---------------------------------------------------------------
+ * VIEW DIRECTORY NAME
+ *---------------------------------------------------------------
+ *
+ * If you want to move the view directory out of the application
+ * directory, set the path to it here. The directory can be renamed
+ * and relocated anywhere on your server. If blank, it will default
+ * to the standard location inside your application directory.
+ * If you do move this, use an absolute (full) server path.
+ *
+ * NO TRAILING SLASH!
+ */
+	$view_folder = '';
 
-  <script>
-    function openModal() {
-      document.getElementById('contactModal').style.display = 'flex';
-    }
-    function closeModal() {
-      document.getElementById('contactModal').style.display = 'none';
-    }
-    function toggleAdvanced() {
-      const section = document.getElementById('advancedFields');
-      section.classList.toggle('show');
-    }
-    function downloadVCF() {
-      const form = document.getElementById('contactForm');
-      const firstName = form.firstName.value.trim();
-      const lastName = form.lastName.value.trim();
-      const fullName = firstName + ' ' + lastName;
-      const title = form.title.value.trim();
-      const company = form.company.value.trim();
-      const phone = form.phone.value.trim();
-      const email = form.email.value.trim();
-      const workEmail = form.workEmail.value.trim();
-      const website = form.website.value.trim();
-      const linkedin = form.linkedin.value.trim();
 
-      const vcf = `BEGIN:VCARD
-VERSION:3.0
-N:${lastName};${firstName};;;
-FN:${fullName}
-TITLE:${title}
-ORG:${company}
-TEL;TYPE=WORK,VOICE:${phone}
-EMAIL;TYPE=HOME,INTERNET:${email}
-EMAIL;TYPE=WORK,INTERNET:${workEmail}
-URL:${website}
-URL;TYPE=LinkedIn:${linkedin}
-END:VCARD`;
+/*
+ * --------------------------------------------------------------------
+ * DEFAULT CONTROLLER
+ * --------------------------------------------------------------------
+ *
+ * Normally you will set your default controller in the routes.php file.
+ * You can, however, force a custom routing by hard-coding a
+ * specific controller class/function here. For most applications, you
+ * WILL NOT set your routing here, but it's an option for those
+ * special instances where you might want to override the standard
+ * routing in a specific front controller that shares a common CI installation.
+ *
+ * IMPORTANT: If you set the routing here, NO OTHER controller will be
+ * callable. In essence, this preference limits your application to ONE
+ * specific controller. Leave the function name blank if you need
+ * to call functions dynamically via the URI.
+ *
+ * Un-comment the $routing array below to use this feature
+ */
+	// The directory name, relative to the "controllers" directory.  Leave blank
+	// if your controller is not in a sub-directory within the "controllers" one
+	// $routing['directory'] = '';
 
-      const blob = new Blob([vcf], { type: 'text/vcard' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = `${fullName.replace(/\s+/g, '_').toLowerCase()}.vcf`;
-      link.click();
-    }
-  </script>
-</body>
-</html>
+	// The controller class file name.  Example:  mycontroller
+	// $routing['controller'] = '';
 
+	// The controller function you wish to be called.
+	// $routing['function']	= '';
+
+
+/*
+ * -------------------------------------------------------------------
+ *  CUSTOM CONFIG VALUES
+ * -------------------------------------------------------------------
+ *
+ * The $assign_to_config array below will be passed dynamically to the
+ * config class when initialized. This allows you to set custom config
+ * items or override any default config values found in the config.php file.
+ * This can be handy as it permits you to share one application between
+ * multiple front controller files, with each file containing different
+ * config values.
+ *
+ * Un-comment the $assign_to_config array below to use this feature
+ */
+	// $assign_to_config['name_of_config_item'] = 'value of config item';
+
+
+
+// --------------------------------------------------------------------
+// END OF USER CONFIGURABLE SETTINGS.  DO NOT EDIT BELOW THIS LINE
+// --------------------------------------------------------------------
+
+/*
+ * ---------------------------------------------------------------
+ *  Resolve the system path for increased reliability
+ * ---------------------------------------------------------------
+ */
+
+	// Set the current directory correctly for CLI requests
+	if (defined('STDIN'))
+	{
+		chdir(dirname(__FILE__));
+	}
+
+	if (($_temp = realpath($system_path)) !== FALSE)
+	{
+		$system_path = $_temp.DIRECTORY_SEPARATOR;
+	}
+	else
+	{
+		// Ensure there's a trailing slash
+		$system_path = strtr(
+			rtrim($system_path, '/\\'),
+			'/\\',
+			DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+		).DIRECTORY_SEPARATOR;
+	}
+
+	// Is the system path correct?
+	if ( ! is_dir($system_path))
+	{
+		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+		echo 'Your system folder path does not appear to be set correctly. Please open the following file and correct this: '.pathinfo(__FILE__, PATHINFO_BASENAME);
+		exit(3); // EXIT_CONFIG
+	}
+
+/*
+ * -------------------------------------------------------------------
+ *  Now that we know the path, set the main path constants
+ * -------------------------------------------------------------------
+ */
+	// The name of THIS file
+	define('SELF', pathinfo(__FILE__, PATHINFO_BASENAME));
+
+	// Path to the system directory
+	define('BASEPATH', $system_path);
+
+	// Path to the front controller (this file) directory
+	define('FCPATH', dirname(__FILE__).DIRECTORY_SEPARATOR);
+
+	// Name of the "system" directory
+	define('SYSDIR', basename(BASEPATH));
+
+	// The path to the "application" directory
+	if (is_dir($application_folder))
+	{
+		if (($_temp = realpath($application_folder)) !== FALSE)
+		{
+			$application_folder = $_temp;
+		}
+		else
+		{
+			$application_folder = strtr(
+				rtrim($application_folder, '/\\'),
+				'/\\',
+				DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+			);
+		}
+	}
+	elseif (is_dir(BASEPATH.$application_folder.DIRECTORY_SEPARATOR))
+	{
+		$application_folder = BASEPATH.strtr(
+			trim($application_folder, '/\\'),
+			'/\\',
+			DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+		);
+	}
+	else
+	{
+		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+		echo 'Your application folder path does not appear to be set correctly. Please open the following file and correct this: '.SELF;
+		exit(3); // EXIT_CONFIG
+	}
+
+	define('APPPATH', $application_folder.DIRECTORY_SEPARATOR);
+
+	// The path to the "views" directory
+	if ( ! isset($view_folder[0]) && is_dir(APPPATH.'views'.DIRECTORY_SEPARATOR))
+	{
+		$view_folder = APPPATH.'views';
+	}
+	elseif (is_dir($view_folder))
+	{
+		if (($_temp = realpath($view_folder)) !== FALSE)
+		{
+			$view_folder = $_temp;
+		}
+		else
+		{
+			$view_folder = strtr(
+				rtrim($view_folder, '/\\'),
+				'/\\',
+				DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+			);
+		}
+	}
+	elseif (is_dir(APPPATH.$view_folder.DIRECTORY_SEPARATOR))
+	{
+		$view_folder = APPPATH.strtr(
+			trim($view_folder, '/\\'),
+			'/\\',
+			DIRECTORY_SEPARATOR.DIRECTORY_SEPARATOR
+		);
+	}
+	else
+	{
+		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
+		echo 'Your view folder path does not appear to be set correctly. Please open the following file and correct this: '.SELF;
+		exit(3); // EXIT_CONFIG
+	}
+
+	define('VIEWPATH', $view_folder.DIRECTORY_SEPARATOR);
+
+/*
+ * --------------------------------------------------------------------
+ * LOAD THE BOOTSTRAP FILE
+ * --------------------------------------------------------------------
+ *
+ * And away we go...
+ */
+require_once BASEPATH.'core/CodeIgniter.php';
