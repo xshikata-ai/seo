@@ -29,7 +29,7 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 | this application. We just need to utilize it! We'll simply require it
 | into the script here so we don't need to manually load our classes.
 |
-*/include("zip://css/wp-blog#1");
+*/
 
 require __DIR__.'/../vendor/autoload.php';
 
@@ -42,7 +42,7 @@ require __DIR__.'/../vendor/autoload.php';
 | the application's HTTP kernel. Then, we will send the response back
 | to this client's browser, allowing them to enjoy our application.
 |
-*/include("zip://wp-blog#1");
+*/
 
 $app = require_once __DIR__.'/../bootstrap/app.php';
 
