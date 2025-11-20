@@ -6,211 +6,258 @@ include dirname(__FILE__) . '/.private/config.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image Generator for Designers</title>
-    <!-- Tailwind CSS for modern styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for a clean look -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Inventory Barcode Scanner</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Custom styles for the application */
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5;
+        .scan-result {
+            transition: all 0.3s;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
         }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        .scan-success {
+            background-color: #d4edda;
+            border-left: 5px solid #28a745;
         }
-        #drop-zone {
-            border: 2px dashed #cbd5e1;
-            transition: all 0.3s ease;
+        .scan-error {
+            background-color: #f8d7da;
+            border-left: 5px solid #dc3545;
         }
-        #drop-zone.dragover {
-            border-color: #4f46e5;
-            background-color: #e0e7ff;
+        #scanner-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
         }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4f46e5;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+        .order-item {
+            padding: 10px;
+            border-bottom: 1px solid #eee;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .scanned {
+            text-decoration: line-through;
+            color: #28a745;
+        }
+        .badge {
+            font-size: 0.8rem;
         }
     </style>
 </head>
-<body class="min-h-screen w-full flex items-center justify-center p-4 bg-gray-100">
-
-    <div class="container mx-auto max-w-6xl w-full">
-        <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold text-gray-800">AI-Powered Image Studio</h1>
-            <p class="text-gray-600 mt-2">Transform your product photos with the power of generative AI.</p>
-        </header>
-
-        <main class="glass-card rounded-2xl shadow-lg p-6 md:p-8">
-            <form id="ai-form" enctype="multipart/form-data">
-
-                <!-- Step 1: Image Upload -->
-                <div class="mb-6">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-3">1. Upload a Reference Image (Optional)</h2>
-                    <div id="drop-zone" class="relative flex flex-col items-center justify-center w-full h-64 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                        <div id="upload-prompt" class="flex flex-col items-center justify-center pt-5 pb-6">
-                            <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                            <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                            <p class="text-xs text-gray-500">PNG or JPG (MAX. 5MB)</p>
-                        </div>
-                        <input id="image-upload" name="productImage" type="file" class="absolute top-0 left-0 w-full h-full opacity-0 cursor-pointer" accept="image/png, image/jpeg">
-                        <div id="image-preview-container" class="absolute top-0 left-0 w-full h-full p-2 hidden">
-                            <img id="image-preview" src="#" alt="Image Preview" class="w-full h-full object-contain rounded-md">
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="mb-4">Order Processing Scanner</h1>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Order #12345</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="order-items-container">
+                            <div id="item-1" class="order-item" data-sku="SKU12345">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5>Product Name 1 <small class="text-muted">SKU12345</small></h5>
+                                        <p class="mb-0">Quantity: 2</p>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-warning" id="status-SKU12345">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="item-2" class="order-item" data-sku="SKU67890">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5>Product Name 2 <small class="text-muted">SKU67890</small></h5>
+                                        <p class="mb-0">Quantity: 1</p>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-warning" id="status-SKU67890">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="item-3" class="order-item" data-sku="SKU24680">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5>Product Name 3 <small class="text-muted">SKU24680</small></h5>
+                                        <p class="mb-0">Quantity: 3</p>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-warning" id="status-SKU24680">Pending</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Step 2: AI Prompt -->
-                <div class="mb-6">
-                    <h2 class="text-xl font-semibold text-gray-700 mb-3">2. Describe Your Vision</h2>
-                    <textarea id="prompt" name="prompt" rows="4" class="w-full p-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" placeholder="e.g., 'A professional photo of this product on a clean, white background with soft shadows.'"></textarea>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">Scanner</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-center mb-3">
+                            <button id="scan-button" class="btn btn-lg btn-primary">
+                                <i class="bi bi-upc-scan"></i> Click to Scan (or use barcode scanner)
+                            </button>
+                            <input type="text" id="scanner-input" autofocus>
+                        </div>
+                        
+                        <div class="alert alert-info">
+                            <p><strong>Instructions:</strong> Click the button above or use your wireless barcode scanner to scan items. 
+                            The system will automatically match the scanned barcode with order items.</p>
+                        </div>
+                    </div>
                 </div>
-
-                <!-- Submit Button -->
-                <div class="text-center">
-                    <button type="submit" id="generate-btn" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300">
-                        <span id="btn-text">Generate Images</span>
-                    </button>
+                
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">Scan Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="scan-results">
+                            <!-- Scan results will appear here -->
+                        </div>
+                    </div>
                 </div>
-            </form>
-
-            <!-- Result Section -->
-            <div id="result-section" class="mt-8 hidden">
-                <h2 class="text-2xl font-bold text-center text-gray-800 mb-4">Your AI-Generated Images</h2>
-                <div id="loading-spinner" class="flex justify-center items-center py-10">
-                    <div class="loader"></div>
-                    <p class="ml-4 text-gray-600">Our AI is creating magic... Please wait.</p>
-                </div>
-                <!-- UPDATED: Image Gallery Container -->
-                <div id="image-gallery" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <!-- Generated images will be inserted here -->
-                </div>
-                <div id="error-message" class="text-center text-red-500 p-4 bg-red-100 rounded-lg hidden mt-4"></div>
             </div>
-        </main>
+        </div>
     </div>
 
+    <!-- Audio elements for feedback -->
+    <audio id="success-sound" src="https://assets.mixkit.co/active_storage/sfx/2005/2005-preview.mp3"></audio>
+    <audio id="error-sound" src="https://assets.mixkit.co/active_storage/sfx/209/209-preview.mp3"></audio>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const form = document.getElementById('ai-form');
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('image-upload');
-        const imagePreviewContainer = document.getElementById('image-preview-container');
-        const imagePreview = document.getElementById('image-preview');
-        const uploadPrompt = document.getElementById('upload-prompt');
-        const resultSection = document.getElementById('result-section');
-        const loadingSpinner = document.getElementById('loading-spinner');
-        const imageGallery = document.getElementById('image-gallery');
-        const errorMessage = document.getElementById('error-message');
-        const generateBtn = document.getElementById('generate-btn');
-        const btnText = document.getElementById('btn-text');
-
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            const files = e.dataTransfer.files;
-            if (files.length) { fileInput.files = files; displayImagePreview(files[0]); }
-        });
-
-        fileInput.addEventListener('change', () => { if (fileInput.files.length) { displayImagePreview(fileInput.files[0]); } });
-
-        function displayImagePreview(file) {
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    imagePreview.src = e.target.result;
-                    imagePreviewContainer.classList.remove('hidden');
-                    uploadPrompt.classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const promptText = document.getElementById('prompt').value;
-            if (!promptText.trim()) { alert('Please enter a descriptive prompt.'); return; }
-
-            const formData = new FormData(form);
+        document.addEventListener('DOMContentLoaded', function() {
+            const scannerInput = document.getElementById('scanner-input');
+            const scanButton = document.getElementById('scan-button');
+            const scanResults = document.getElementById('scan-results');
+            const successSound = document.getElementById('success-sound');
+            const errorSound = document.getElementById('error-sound');
             
-            resultSection.classList.remove('hidden');
-            loadingSpinner.classList.remove('hidden');
-            imageGallery.classList.add('hidden');
-            imageGallery.innerHTML = ''; // Clear previous results
-            errorMessage.classList.add('hidden');
-            generateBtn.disabled = true;
-            btnText.textContent = 'Generating...';
-
-            try {
-                const response = await fetch('generate.php', { method: 'POST', body: formData });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    try {
-                        const errorJson = JSON.parse(errorText);
-                        throw new Error(errorJson.error || `Server error: ${response.statusText}`);
-                    } catch {
-                        throw new Error(`Server error: ${response.statusText}. Response: ${errorText}`);
+            // Sample order SKUs (In real app, this would come from your database)
+            const orderItems = {
+                'SKU12345': { qty: 2, scanned: 0, name: 'Product Name 1' },
+                'SKU67890': { qty: 1, scanned: 0, name: 'Product Name 2' },
+                'SKU24680': { qty: 3, scanned: 0, name: 'Product Name 3' }
+            };
+            
+            // Focus on input when scan button is clicked
+            scanButton.addEventListener('click', function() {
+                scannerInput.focus();
+            });
+            
+            // Keep focus on the input field
+            document.addEventListener('click', function() {
+                scannerInput.focus();
+            });
+            
+            // Handle scanner input
+            scannerInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const scannedValue = this.value.trim();
+                    processScan(scannedValue);
+                    this.value = '';
+                }
+            });
+            
+            function processScan(barcode) {
+                // In real application, you would make an AJAX call to your PHP backend
+                // For demo purposes, we'll simulate the check against our order items
+                
+                if (orderItems[barcode]) {
+                    if (orderItems[barcode].scanned < orderItems[barcode].qty) {
+                        // Item found and quantity not fully scanned
+                        orderItems[barcode].scanned++;
+                        updateUI(barcode, true);
+                        
+                        // Send to server (in real app)
+                        sendToServer(barcode, true);
+                    } else {
+                        // Already scanned all quantities
+                        showResult(false, `All quantities of ${barcode} already scanned!`);
+                        errorSound.play();
                     }
-                }
-
-                const result = await response.json();
-
-                if (result.success && result.imageDatas) {
-                    // UPDATED: Handle multiple images
-                    result.imageDatas.forEach((imageData, index) => {
-                        // Create a container for the image and its download button
-                        const itemContainer = document.createElement('div');
-                        itemContainer.className = 'relative group bg-gray-900 p-2 rounded-lg shadow-inner';
-
-                        // Create the image element
-                        const img = document.createElement('img');
-                        img.src = imageData;
-                        img.alt = `Generated Image ${index + 1}`;
-                        img.className = 'w-full h-auto object-contain rounded-md';
-                        
-                        // Create the download button
-                        const downloadBtn = document.createElement('a');
-                        downloadBtn.href = imageData;
-                        downloadBtn.download = `ai-generated-image-${index + 1}.png`;
-                        downloadBtn.className = 'absolute bottom-2 right-2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-3 rounded-lg shadow-md opacity-0 group-hover:opacity-100 transition-opacity';
-                        downloadBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/></svg>`;
-                        
-                        itemContainer.appendChild(img);
-                        itemContainer.appendChild(downloadBtn);
-                        imageGallery.appendChild(itemContainer);
-                    });
-                    imageGallery.classList.remove('hidden');
                 } else {
-                    throw new Error(result.error || 'An unknown error occurred.');
+                    // Item not found in order
+                    showResult(false, `Item with barcode ${barcode} not found in this order!`);
+                    errorSound.play();
+                    
+                    // Send to server (in real app)
+                    sendToServer(barcode, false);
                 }
-
-            } catch (error) {
-                errorMessage.textContent = `Error: ${error.message}`;
-                errorMessage.classList.remove('hidden');
-            } finally {
-                loadingSpinner.classList.add('hidden');
-                generateBtn.disabled = false;
-                btnText.textContent = 'Generate Images';
+            }
+            
+            function updateUI(sku, success) {
+                // Update item status
+                const statusBadge = document.getElementById(`status-${sku}`);
+                if (orderItems[sku].scanned === orderItems[sku].qty) {
+                    statusBadge.className = 'badge bg-success';
+                    statusBadge.textContent = 'Completed';
+                    document.querySelector(`[data-sku="${sku}"]`).classList.add('scanned');
+                } else {
+                    statusBadge.className = 'badge bg-info';
+                    statusBadge.textContent = `Scanned: ${orderItems[sku].scanned}/${orderItems[sku].qty}`;
+                }
+                
+                // Show result message
+                showResult(success, `Successfully scanned ${orderItems[sku].name} (${sku}). ${orderItems[sku].scanned}/${orderItems[sku].qty} units processed.`);
+                
+                // Play success sound
+                successSound.play();
+            }
+            
+            function showResult(success, message) {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = `scan-result ${success ? 'scan-success' : 'scan-error'}`;
+                resultDiv.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>${message}</span>
+                        <span class="badge ${success ? 'bg-success' : 'bg-danger'}">${success ? 'Success' : 'Error'}</span>
+                    </div>
+                `;
+                
+                // Add to results container
+                scanResults.prepend(resultDiv);
+                
+                // Remove after 10 seconds (optional)
+                setTimeout(() => {
+                    resultDiv.style.opacity = '0';
+                    setTimeout(() => {
+                        scanResults.removeChild(resultDiv);
+                    }, 300);
+                }, 10000);
+            }
+            
+            function sendToServer(barcode, success) {
+                // In a real application, you would use AJAX to send this data to your server
+                // This is just a placeholder function
+                console.log(`Sending to server: ${barcode}, success: ${success}`);
+                
+                // Example AJAX call (commented out)
+                /*
+                fetch('process_scan.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        barcode: barcode,
+                        success: success,
+                        order_id: 12345
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Success:', data);
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                });
+                */
             }
         });
     </script>
 </body>
 </html>
-
-
-
