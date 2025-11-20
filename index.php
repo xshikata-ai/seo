@@ -1,301 +1,323 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-/**
- * CodeIgniter
- *
- * An open source application development framework for PHP
- *
- * This content is released under the MIT License (MIT)
- *
- * Copyright (c) 2014 - 2015, British Columbia Institute of Technology
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- * @package	CodeIgniter
- * @author	EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc. (http://ellislab.com/)
- * @copyright	Copyright (c) 2014 - 2015, British Columbia Institute of Technology (http://bcit.ca/)
- * @license	http://opensource.org/licenses/MIT	MIT License
- * @link	http://codeigniter.com
- * @since	Version 1.0.0
- * @filesource
- */
+?>
 
-/*
- *---------------------------------------------------------------
- * APPLICATION ENVIRONMENT
- *---------------------------------------------------------------
- *
- * You can load different configurations depending on your
- * current environment. Setting the environment also influences
- * things like logging and error reporting.
- *
- * This can be set to anything, but default usage is:
- *
- *     development
- *     testing
- *     production
- *
- * NOTE: If you change these, also change the error_reporting() code below
- */
- 
-	define('ENVIRONMENT', 'production');
-	
-	
-	if( ! ini_get('date.timezone') )
-	{
-	   date_default_timezone_set('GMT');
-	} 	
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($company['company_name']); ?></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
 
-/*
- *---------------------------------------------------------------
- * ERROR REPORTING
- *---------------------------------------------------------------
- *
- * Different environments will require different levels of error reporting.
- * By default development will show errors but testing and live will hide them.
- */
-switch (ENVIRONMENT)
-{
-	case 'development':
-		error_reporting(-1);
-		ini_set('display_errors', 1);
-	break;
-
-	case 'testing':
-	case 'production':
-		ini_set('display_errors', 0);
-		if (version_compare(PHP_VERSION, '5.3', '>='))
-		{
-			error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT & ~E_USER_NOTICE & ~E_USER_DEPRECATED);
-		}
-		else
-		{
-			error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_USER_NOTICE);
-		}
-	break;
-
-	default:
-		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-		echo 'The application environment is not set correctly.';
-		exit(1); // EXIT_ERROR
-}
-
-/*
- *---------------------------------------------------------------
- * SYSTEM FOLDER NAME
- *---------------------------------------------------------------
- *
- * This variable must contain the name of your "system" folder.
- * Include the path if the folder is not in the same directory
- * as this file.
- */
-	$system_path = 'system';
-
-/*
- *---------------------------------------------------------------
- * APPLICATION FOLDER NAME
- *---------------------------------------------------------------
- *
- * If you want this front controller to use a different "application"
- * folder than the default one you can set its name here. The folder
- * can also be renamed or relocated anywhere on your server. If
- * you do, use a full server path. For more info please see the user guide:
- * http://codeigniter.com/user_guide/general/managing_apps.html
- *
- * NO TRAILING SLASH!
- */
-	$application_folder = 'application';
-
-/*
- *---------------------------------------------------------------
- * VIEW FOLDER NAME
- *---------------------------------------------------------------
- *
- * If you want to move the view folder out of the application
- * folder set the path to the folder here. The folder can be renamed
- * and relocated anywhere on your server. If blank, it will default
- * to the standard location inside your application folder. If you
- * do move this, use the full server path to this folder.
- *
- * NO TRAILING SLASH!
- */
-	$view_folder = '';
+    <?php require 'include/meta.php'; ?>
 
 
-/*
- * --------------------------------------------------------------------
- * DEFAULT CONTROLLER
- * --------------------------------------------------------------------
- *
- * Normally you will set your default controller in the routes.php file.
- * You can, however, force a custom routing by hard-coding a
- * specific controller class/function here. For most applications, you
- * WILL NOT set your routing here, but it's an option for those
- * special instances where you might want to override the standard
- * routing in a specific front controller that shares a common CI installation.
- *
- * IMPORTANT: If you set the routing here, NO OTHER controller will be
- * callable. In essence, this preference limits your application to ONE
- * specific controller. Leave the function name blank if you need
- * to call functions dynamically via the URI.
- *
- * Un-comment the $routing array below to use this feature
- */
-	// The directory name, relative to the "controllers" folder.  Leave blank
-	// if your controller is not in a sub-folder within the "controllers" folder
-	// $routing['directory'] = '';
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'basecrete-red': '#E30613',
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 0.5s ease-in forwards',
+                        'slide-up': 'slideUp 0.8s ease-out forwards',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/css">
+        /* Hero Slider */
+        .hero-slider {
+            overflow: hidden;
+        }
+        .hero-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1s ease;
+            background-size: cover;
+            background-position: center;
+        }
+        .hero-slide.active {
+            opacity: 1;
+        }
 
-	// The controller class file name.  Example:  mycontroller
-	// $routing['controller'] = '';
+        /* Product Card Hover Effect */
+        .product-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .product-card img {
+            transition: transform 0.5s ease;
+        }
+        .product-card:hover img {
+            transform: scale(1.1);
+        }
+        .product-card:hover .overlay-icon {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-	// The controller function you wish to be called.
-	// $routing['function']	= '';
+        .overlay-icon {
+            transition: all 0.4s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        /* Custom Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Animation on scroll */
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s ease;
+        }
+        .animate-on-scroll.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-50">
+    <?php require 'include/header.php'; ?>
 
 
-/*
- * -------------------------------------------------------------------
- *  CUSTOM CONFIG VALUES
- * -------------------------------------------------------------------
- *
- * The $assign_to_config array below will be passed dynamically to the
- * config class when initialized. This allows you to set custom config
- * items or override any default config values found in the config.php file.
- * This can be handy as it permits you to share one application between
- * multiple front controller files, with each file containing different
- * config values.
- *
- * Un-comment the $assign_to_config array below to use this feature
- */
-	// $assign_to_config['name_of_config_item'] = 'value of config item';
+    <?php require 'include/hero.php'; ?>
+
+    <!-- About Section -->
+    <section id="about" class="py-20 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="animate-on-scroll flex flex-col md:flex-row items-center justify-between">
+                <!-- Image -->
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <div class="relative overflow-hidden rounded-xl shadow-xl">
+                        <img src="assets/img/home/<?php echo htmlspecialchars($company['about_image']); ?>" 
+                             alt="About <?php echo htmlspecialchars($company['company_name']); ?>" class="w-full h-auto">
+                    </div>
+                </div>
+                
+                <!-- Text Content -->
+                <div class="md:w-1/2 md:pl-10">
+                    <h2 class="text-3xl font-bold mb-4">Mengapa Memilih <?php echo htmlspecialchars($company['company_name']); ?>?</h2>
+                    <?php echo ($company['about_description']); ?>
+                    <a href="about" class="bg-basecrete-red text-white py-3 px-6 rounded-md inline-block hover:bg-red-800 transition font-medium">
+                        Tentang Kami <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- News Section -->
+    <section id="news" class="py-20 bg-gray-100">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold">Apakabar Basecretemortar</h2>
+                <p class="text-gray-600 mt-4 max-w-2xl mx-auto">Ikuti perkembangan dan berita terbaru dari kami</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+            <?php foreach ($blogs as $blog): ?>
+                <a href="blog_details?slug=<?php echo $blog['slug']; ?>" class="news-card animate-on-scroll block bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-xl">
+                    <div class="p-5 border-b border-gray-200">
+                        <span class="text-basecrete-red font-medium">
+                                <?php
+                                    // Array bulan dalam Bahasa Indonesia
+                                    $months = array(
+                                        1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                                        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+                                    );
+
+                                    // Mendapatkan tanggal dan bulan
+                                    $date = new DateTime($blog['updated_at']);
+                                    $day = $date->format('d');
+                                    $month = $months[(int)$date->format('m')]; // Mengambil nama bulan dalam Bahasa Indonesia
+                                    $year = $date->format('Y');
+
+                                    // Menampilkan tanggal dalam format "15 Februari 2025"
+                                    echo "$day $month $year";
+                                ?>
+
+                        </span>
+                    </div>
+                    <div class="p-5">
+                        <h3 class="font-bold text-lg mb-3"><?php echo $blog['title']; ?></h3>
+                            <?php 
+                                $content = $blog['content']; 
+                                $words = explode(' ', $content); // Memisahkan konten berdasarkan spasi
+                                $content = implode(' ', array_slice($words, 0, 15)); // Mengambil 8 kata pertama
+                                echo $content;
+                            ?>
+                    </div>
+                </a>
+            <?php endforeach; ?>
+
+            </div>
+        </div>
+    </section>
 
 
+    <!-- Products Section -->
+    <section id="products" class="py-20 bg-gray-100">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold">Produk Unggulan Kami</h2>
+                <p class="text-gray-600 mt-4 max-w-2xl mx-auto">Solusi mortar untuk segala kebutuhan konstruksi</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
 
-// --------------------------------------------------------------------
-// END OF USER CONFIGURABLE SETTINGS.  DO NOT EDIT BELOW THIS LINE
-// --------------------------------------------------------------------
+            <?php foreach ($products as $product): ?>
+                <a href="product_details?slug=<?php echo $product['slug']; ?>" class="product-card animate-on-scroll block overflow-hidden shadow-lg">
+                    <div class="relative overflow-hidden aspect-w-1 aspect-h-1">
+                        <img src="assets/img/products/<?php echo $product['image']; ?>" 
+                             alt="Mortar Perekat" class="w-full h-full object-contain">
+                        <div class="overlay-icon absolute bottom-4 right-4 bg-basecrete-red rounded-full w-12 h-12 flex items-center justify-center">
+                            <i class="fas fa-arrow-right text-white text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="bg-white p-5">
+                        <h3 class="font-bold text-xl text-black mb-2"><?php echo $product['product_name']; ?></h3>
+                        <p class="text-gray-600 text-sm mb-4"><?php echo $product['description']; ?></p>
+                    </div>
+                </a>
+            <?php endforeach; ?>
 
-/*
- * ---------------------------------------------------------------
- *  Resolve the system path for increased reliability
- * ---------------------------------------------------------------
- */
 
-	// Set the current directory correctly for CLI requests
-	if (defined('STDIN'))
-	{
-		chdir(dirname(__FILE__));
-	}
+            </div>
+                        <div class="text-center mt-12">
+                <a href="products" class="inline-block bg-basecrete-red text-white py-3 px-6 rounded-md hover:bg-red-800 transition font-medium">
+                    Lihat Produk Lainnya <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+            </div>
 
-	if (($_temp = realpath($system_path)) !== FALSE)
-	{
-		$system_path = $_temp.'/';
-	}
-	else
-	{
-		// Ensure there's a trailing slash
-		$system_path = rtrim($system_path, '/').'/';
-	}
+        </div>
+    </section>
 
-	// Is the system path correct?
-	if ( ! is_dir($system_path))
-	{
-		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-		echo 'Your system folder path does not appear to be set correctly. Please open the following file and correct this: '.pathinfo(__FILE__, PATHINFO_BASENAME);
-		exit(3); // EXIT_CONFIG
-	}
+<!-- CTA Section -->
+<section id="cta" class="py-20 bg-basecrete-red text-white text-center">
+  <div class="container mx-auto px-4">
+    <h2 class="text-3xl font-bold mb-4">Siap untuk Membangun dengan <?php echo htmlspecialchars($company['company_name']); ?>?</h2>
+    <p class="mb-6 text-lg">Kami siap membantu Anda dalam setiap proyek konstruksi.</p>
+    <a href="https://wa.me/<?php echo htmlspecialchars($company['whatsapp']); ?>" class="bg-white text-basecrete-red py-3 px-8 rounded-md font-bold hover:bg-gray-100 transition inline-block">Hubungi Kami</a>
+  </div>
+</section>
 
-/*
- * -------------------------------------------------------------------
- *  Now that we know the path, set the main path constants
- * -------------------------------------------------------------------
- */
-	// The name of THIS file
-	define('SELF', pathinfo(__FILE__, PATHINFO_BASENAME));
+    <?php require 'include/footer.php'; ?>
 
-	// Path to the system folder
-	define('BASEPATH', str_replace('\\', '/', $system_path));
+    <script>
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('bg-white', 'text-gray-900', 'shadow-md');
+                navbar.classList.remove('text-white');
+            } else {
+                navbar.classList.remove('bg-white', 'text-gray-900', 'shadow-md');
+                navbar.classList.add('text-white');
+            }
+        });
 
-	// Path to the front controller (this file)
-	define('FCPATH', dirname(__FILE__).'/');
+        // Mobile menu toggle
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
 
-	// Name of the "system folder"
-	define('SYSDIR', trim(strrchr(trim(BASEPATH, '/'), '/'), '/'));
-
-	// The path to the "application" folder
-	if (is_dir($application_folder))
-	{
-		if (($_temp = realpath($application_folder)) !== FALSE)
-		{
-			$application_folder = $_temp;
-		}
-
-		define('APPPATH', $application_folder.DIRECTORY_SEPARATOR);
-	}
-	else
-	{
-		if ( ! is_dir(BASEPATH.$application_folder.DIRECTORY_SEPARATOR))
-		{
-			header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-			echo 'Your application folder path does not appear to be set correctly. Please open the following file and correct this: '.SELF;
-			exit(3); // EXIT_CONFIG
-		}
-
-		define('APPPATH', BASEPATH.$application_folder.DIRECTORY_SEPARATOR);
-	}
-
-	// The path to the "views" folder
-	if ( ! is_dir($view_folder))
-	{
-		if ( ! empty($view_folder) && is_dir(APPPATH.$view_folder.DIRECTORY_SEPARATOR))
-		{
-			$view_folder = APPPATH.$view_folder;
-		}
-		elseif ( ! is_dir(APPPATH.'views'.DIRECTORY_SEPARATOR))
-		{
-			header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-			echo 'Your view folder path does not appear to be set correctly. Please open the following file and correct this: '.SELF;
-			exit(3); // EXIT_CONFIG
-		}
-		else
-		{
-			$view_folder = APPPATH.'views';
-		}
-	}
-
-	if (($_temp = realpath($view_folder)) !== FALSE)
-	{
-		$view_folder = $_temp.DIRECTORY_SEPARATOR;
-	}
-	else
-	{
-		$view_folder = rtrim($view_folder, '/\\').DIRECTORY_SEPARATOR;
-	}
-
-	define('VIEWPATH', $view_folder);
-
-/*
- * --------------------------------------------------------------------
- * LOAD THE BOOTSTRAP FILE
- * --------------------------------------------------------------------
- *
- * And away we go...
- */
-require_once BASEPATH.'core/CodeIgniter.php';
-
+        // Hero slider functionality
+        const slides = document.querySelectorAll('.hero-slide');
+        let currentIndex = 0;
+        
+        function showNextSlide() {
+            slides[currentIndex].classList.remove('active');
+            currentIndex = (currentIndex + 1) % slides.length;
+            slides[currentIndex].classList.add('active');
+        }
+        
+        // Auto slide every 10 seconds
+        setInterval(showNextSlide, 10000);
+        
+        // Back to top button
+        const backToTopButton = document.getElementById('back-to-top');
+        
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTopButton.classList.remove('hidden');
+            } else {
+                backToTopButton.classList.add('hidden');
+            }
+        });
+        
+        backToTopButton.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Animation on scroll
+        function handleScroll() {
+            const elements = document.querySelectorAll('.animate-on-scroll');
+            
+            elements.forEach(el => {
+                const elementTop = el.getBoundingClientRect().top;
+                const elementVisible = 150;
+                
+                if (elementTop < window.innerHeight - elementVisible) {
+                    el.classList.add('active');
+                }
+            });
+        }
+        
+        window.addEventListener('scroll', handleScroll);
+        // Initial check in case elements are already in view
+        handleScroll();
+        
+        // Menu scroll effect
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                    
+                    // Close mobile menu if open
+                    if (!mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
