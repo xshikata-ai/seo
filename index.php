@@ -1,75 +1,69 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-/**
- * Laravel - A PHP Framework For Web Artisans
- */
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Http\Request;
 
-// Define the document root path
-$publicPath = __DIR__ . '/public';
+if (isset($_SERVER['REQUEST_URI']) && $_SERVER['REQUEST_URI'] === '/update-manual') {
+    $packageCache = __DIR__ . '/../bootstrap/cache/packages.php';
+    $servicesCache = __DIR__ . '/../bootstrap/cache/services.php';
 
-// Get the requested URI
-$uri = urldecode(
-    parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?? ''
-);
+    // Delete the cache files if they exist
+    if (file_exists($packageCache)) {
+        unlink($packageCache);
+    }
 
-// Handle static assets (CSS, JS, images)
-$assetPattern = '/^\/(css|js|images|favicon\.ico|manifest\.json|robots\.txt|sw\.js)/i';
-if (preg_match($assetPattern, $uri, $matches)) {
-    $requestPath = $publicPath . $uri;
-    
-    if (file_exists($requestPath)) {
-        // Determine the appropriate content type based on file extension
-        $extension = pathinfo($requestPath, PATHINFO_EXTENSION);
-        $contentTypes = [
-            'css' => 'text/css',
-            'js' => 'application/javascript',
-            'jpg' => 'image/jpeg',
-            'jpeg' => 'image/jpeg',
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            'svg' => 'image/svg+xml',
-            'ico' => 'image/x-icon',
-            'json' => 'application/json',
-            'txt' => 'text/plain',
-            'webp' => 'image/webp'
-        ];
-        
-        if (isset($contentTypes[$extension])) {
-            header('Content-Type: ' . $contentTypes[$extension]);
-        }
-        
-        // Output the file contents
-        readfile($requestPath);
-        exit;
+    if (file_exists($servicesCache)) {
+        unlink($servicesCache);
     }
 }
 
-// For all other requests, bootstrap Laravel
 define('LARAVEL_START', microtime(true));
 
-// Check for maintenance mode
-if (file_exists($maintenance = __DIR__.'/storage/framework/maintenance.php')) {
+/*
+|--------------------------------------------------------------------------
+| Check If The Application Is Under Maintenance
+|--------------------------------------------------------------------------
+|
+| If the application is in maintenance / demo mode via the "down" command
+| we will load this file so that any pre-rendered content can be shown
+| instead of starting the framework, which could cause an exception.
+|
+*/
+
+if (file_exists($maintenance = __DIR__ . '/../storage/framework/maintenance.php')) {
     require $maintenance;
 }
 
-// Register Composer autoloader
-require __DIR__.'/vendor/autoload.php';
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader for
+| this application. We just need to utilize it! We'll simply require it
+| into the script here so we don't need to manually load our classes.
+|
+*/
 
-// Bootstrap the application
-$app = require_once __DIR__.'/bootstrap/app.php';
+require __DIR__ . '/../vendor/autoload.php';
 
-// Set the public path to the current directory
-$app->bind('path.public', function() {
-    return __DIR__;
-});
+/*
+|--------------------------------------------------------------------------
+| Run The Application
+|--------------------------------------------------------------------------
+|
+| Once we have the application, we can handle the incoming request using
+| the application's HTTP kernel. Then, we will send the response back
+| to this client's browser, allowing them to enjoy our application.
+|
+*/
 
-// Run the application
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
+$app = require_once __DIR__ . '/../bootstrap/app.php';
+
+$kernel = $app->make(Kernel::class);
 
 $response = $kernel->handle(
-    $request = Illuminate\Http\Request::capture()
-);
-
-$response->send();
+    $request = Request::capture()
+)->send();
 
 $kernel->terminate($request, $response);
