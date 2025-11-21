@@ -1,204 +1,497 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-<?php
-include_once(dirname(__FILE__).'/inc/functions.php');
-include_once(dirname(__FILE__).'/inc/common.php');
-include_once(dirname(__FILE__).'/inc/icdb.php');
+<?php include 'includes/header.php';?>
 
-$wpdb = null;
-$ready = false;
-if (file_exists(dirname(__FILE__).'/inc/config.php')) {
-	include_once(dirname(__FILE__).'/inc/config.php');
-	try {
-		$wpdb = new ICDB(UAP_DB_HOST, UAP_DB_HOST_PORT, UAP_DB_NAME, UAP_DB_USER, UAP_DB_PASSWORD, UAP_TABLE_PREFIX);
-		create_tables();
-		get_options();
-		if (!empty($options['login']) && !empty($options['password']) && !empty($options['url'])) $ready = true;
-	} catch (Exception $e) {
-	}
-}
-if (!$ready) {
-	header('Location: '.admin_url('install.php'));
-	exit;
-}
-$is_logged = false;
-$session_id = '';
-if (isset($_COOKIE['uap-auth'])) {
-	$session_id = preg_replace('/[^a-zA-Z0-9]/', '', $_COOKIE['uap-auth']);
-	$session_details = $wpdb->get_row("SELECT * FROM ".$wpdb->prefix."sessions WHERE session_id = '".esc_sql($session_id)."' AND registered + valid_period > '".esc_sql(time())."'");
-	if ($session_details) {
-		$wpdb->query("UPDATE ".$wpdb->prefix."sessions SET registered = '".esc_sql(time())."', ip = '".esc_sql($_SERVER['REMOTE_ADDR'])."' WHERE session_id = '".esc_sql($session_id)."'");
-		$is_logged = true;
-	}
-}
-if ($is_logged === false) {
-	header('Location: '.admin_url('login.php'));
-	exit;
-}
-include_once(dirname(__FILE__).'/inc/plugins.php');
-$page = array(
-	'slug' => 'dashboard',
-	'page-title' => esc_html__('Dashboard', 'hap')
-);
-do_action('init');
-do_action('admin_init');
+   <div class="MidBody view">      
+         <div class="first-section block">
+            <div class="container">
+               <div class="row row-col">
+                  <div class="col col-left col-left-animation col-ani">
+                     <div class="home-all-left">
+                        <h1 class="every-bites">Every bite takes<br>you home</h1>
+                        <a href="menu" class="calgary-location location"><img src="images/LocationVector.svg">Calgary Westwinds</a>
+                        <a href="menu" class="clarence-location location"><img src="images/LocationVector.svg">Clarence</a><br>
+                        <a href="menu" class="college-plaza-location location"><img src="images/LocationVector.svg">College plaza</a>
+                        <a href="menu" class="ebenezer-location location"><img src="images/LocationVector.svg">Ebenezer</a><br>
+                        <a href="menu" class="kitchener-location location"><img src="images/LocationVector.svg">Sage Hill</a>
+                        <a href="menu" class="kitchener-location location"><img src="images/LocationVector.svg">Calgary Savanna</a>
+                        <a href="menu" class="kitchener-location location"><img src="images/LocationVector.svg">Toronto Downtown</a>
+                        <p class="home-all-right-text">
+                             Missing Home-like <b>Indian Desi food?</b>  Don’t stress too much!<br>Grab your keys, gear your ride, and head straight to <b>sector17</b>,<br>Canada. 
+                             It is the <b>Fast Food Restaurant</b> that serves the most<br>authentic Indian street food. Be it Desi <b>Chinese or tikki<br>Burger, 
+                             every bite</b> would release a blast of hawt Indian flavours<br>in your mouth. Check us Out! 
+                         </p>
+                        <a href="menu" class="see-our-menu">See our menu</a>
+                        <a href="" class="covid-19">100% covid safety protocol</a>
+                     </div>
+                  </div>
+                  <div class="col col-right col-right-animation col-ani">
+                     <img src="images/BannerHome.webp">
+                  </div>
+               </div>
+            </div>
+         </div>  
 
-do_action('admin_menu');
-if (isset($_REQUEST['page'])) {
-	foreach ($menu as $slug => $item) {
-		if (array_key_exists('submenu', $item)) {
-			$found = false;
-			foreach ($item['submenu'] as $submenu_slug => $submenu_item) {
-				if ($_REQUEST['page'] == $submenu_slug) {
-					$page = $submenu_item;
-					$page['slug'] = $submenu_slug;
-					$page['parent'] = $slug;
-					$found = true;
-					break;
-				}
-			}
-			if ($found) break;
-		} else if ($_REQUEST['page'] == $slug) {
-			$page = $item;
-			$page['slug'] = $slug;
-			break;
-		}
-	}
-}
-if (defined('HALFDATA_DEMO') && HALFDATA_DEMO === true && $page['slug'] == 'dashboard') {
-	header('Location: '.$options['url'].'?page='.HALFDATA_BASE_PAGE);
-}
-do_action('admin_enqueue_scripts');
-include_once(dirname(__FILE__).'/inc/header.php');
-?>
-<?php
-if ($page['slug'] == 'dashboard') {
-	if ($writeable) {
-?>
-		<div style="display:none;">
-			<iframe id="upload-target" name="upload-target" height="0" width="0" frameborder="0" onload="plugin_uploaded();"></iframe>
-			<form id="upload-form" action="<?php echo admin_url('ajax.php'); ?>" method="post" enctype="multipart/form-data" target="upload-target" onsubmit="jQuery('#plugins-item-new i').attr('class', 'fas fa-spinner fa-spin');" >
-			<input id="upload-plugin" name="upload-plugin" type="file" accept=".zip" onchange="jQuery('#upload-form').submit();" />
-			<input id="action" name="action" type="hidden" value="upload-plugin" />
-			<input type="submit" value="U" />
-			</form>
-		</div>
-<?php
-		$plugins = array();
-		$items = scandir(dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'plugins', 0);
-		foreach ($items as $directory) {
-			if (is_dir(dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'plugins'.DIRECTORY_SEPARATOR.$directory) && $directory != '.' && $directory != '..') {
-				if (file_exists(dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'plugins'.DIRECTORY_SEPARATOR.$directory.DIRECTORY_SEPARATOR.'uap.txt')) {
-					$info = json_decode(file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'plugins'.DIRECTORY_SEPARATOR.$directory.DIRECTORY_SEPARATOR.'uap.txt'), true);
-					if (is_array($info) && !empty($info)) {
-						$plugin_details = $wpdb->get_row("SELECT * FROM ".$wpdb->prefix."plugins WHERE slug = '".esc_sql($info['slug'])."'", ARRAY_A);
-						if ($plugin_details) {
-							$info['active'] = $plugin_details['active'] == 1 ? true : false;
-							$wpdb->query("UPDATE ".$wpdb->prefix."plugins SET
-								uap = '".esc_sql(intval($info['uap']))."',
-								file = '".esc_sql($directory.DIRECTORY_SEPARATOR.$info['file'])."'
-								WHERE slug = '".esc_sql($info['slug'])."'");
-						} else {
-							$info['active'] = false;
-							$wpdb->query("INSERT INTO ".$wpdb->prefix."plugins (slug, uap, version, file, active, registered) VALUES (
-								'".esc_sql($info['slug'])."', 
-								'".esc_sql(intval($info['uap']))."',
-								'0',
-								'".esc_sql($directory.DIRECTORY_SEPARATOR.$info['file'])."',
-								'0',
-								'".esc_sql(time())."')");
-						}
-						$plugins[$info['slug']] = $info;
-					}
-				}
-			}
-		}
-		if (sizeof($plugins) == 0) {
-			$wpdb->query("DELETE FROM ".$wpdb->prefix."plugins");
-		} else {
-			$slugs = array_keys($plugins);
-			foreach ($slugs as $key => $value) {
-				$slugs[$key] = esc_sql($value);
-			}
-			$wpdb->query("DELETE FROM ".$wpdb->prefix."plugins WHERE slug NOT IN ('".implode("','", $slugs)."')");
-		}
-?>
-		<h2><?php echo esc_html__('Installed Plugins', 'hap'); ?></h2>
-		<div class="plugins">
-<?php
-		foreach ($plugins as $slug => $details) {
-			echo '
-			<div class="plugins-item'.($details['active'] ? ' plugins-item-active' : '').'" onclick="toggle_plugin(this, \''.esc_html($slug).'\', \''.($details['active'] ? 'deactivate' : 'activate').'\');">
-				<i class="'.esc_html(!empty($details['icon']) ? $details['icon'] : 'far fa-file-alt').'"></i>
-				<h4>'.esc_html($details['name']).'</h4>
-				<label>'.esc_html__('Version', 'hap').':</label> '.esc_html($details['version']).'<br />
-				<label>'.esc_html__('Status', 'hap').':</label> '.($details['active'] ? esc_html__('Active. Deactivate?', 'hap') : esc_html__('Not Active. Activate?', 'hap')).'
-				<div class="plugins-item-spinner"><i class="fas fa-spinner fa-spin"></i></div>
-			</div>';
-		}
-?>
-			<a id="plugins-item-new" href="#" onclick="jQuery('#upload-plugin').click(); return false;"><i class="fas fa-plus"></i> <?php echo esc_html__('Add New Plugin', 'hap'); ?></a>
-		</div>
-<?php		
-		$items_file = dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'data'.DIRECTORY_SEPARATOR.'temp'.DIRECTORY_SEPARATOR.'plugins.txt';
-		$items = null;
-		$content = null;
-		$use_cache = false;
-		if (file_exists($items_file)) {
-			if (filemtime($items_file)+3600*24*7 > time()) {
-				$use_cache = true;
-			}
-		}
-		if (!$use_cache) {
-			try {
-				$curl = curl_init('https://halfdata.com/hap/plugins.txt');
-				curl_setopt($curl, CURLOPT_TIMEOUT, 5);
-				curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-				curl_setopt($curl, CURLOPT_FORBID_REUSE, true);
-				curl_setopt($curl, CURLOPT_FRESH_CONNECT, true);
-				curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-				curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
-				curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36');
-				$response = curl_exec($curl);
-				if (curl_error($curl)) {
-					curl_close($curl);
-				} else {
-					$http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-					curl_close($curl);
-					if ($http_code == '200') {
-						$result = json_decode($response, true);
-						if ($result) $content = $response;
-					}
-				}
-				if ($content) file_put_contents($items_file, $content);
-				else file_put_contents($items_file, '', FILE_APPEND);
-			} catch (Exception $e) {
-			}
-		}
-		if (!$content) {
-			if (file_exists($items_file)) $content = file_get_contents($items_file);
-		}
-		if ($content) $items = json_decode($content, true);
-		if (is_array($items) && !empty($items)) {
-			echo '
-			<h2>'.esc_html__('Available Plugins', 'hap').'</h2>
-			<div class="plugins">';
-			foreach ($items as $details) {
-				echo '
-				<a class="plugins-item plugins-item-active" href="'.esc_html($details['url']).'" target="_blank">
-					<i class="'.esc_html(!empty($details['icon']) ? $details['icon'] : 'far fa-file-alt').'"></i>
-					<h4>'.esc_html($details['name']).'</h4>
-					'.esc_html__('Read more...', 'hap').'
-				</a>';
-			}
-			echo '
-			</div>';
-		}
-	}
-} else {
-	if (!empty($page['function'])) {
-		call_user_func_array($page['function'], array());
-	}
-}
-include_once(dirname(__FILE__).'/inc/footer.php');
-?>
+         <div class="second-section block down-animation">
+            <div class="container">
+               <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                  <li class="nav-item" role="presentation">
+                   <button class="nav-link active" id="pills-home-tab" data-bs-toggle="pill" data-bs-target="#pills-home" type="button" role="tab" aria-controls="pills-home" aria-selected="true">Appetizer</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                   <button class="nav-link" id="pills-profile-tab" data-bs-toggle="pill" data-bs-target="#pills-profile" type="button" role="tab" aria-controls="pills-profile" aria-selected="false">Desi chinese</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                   <button class="nav-link" id="pills-contact-tab" data-bs-toggle="pill" data-bs-target="#pills-contact" type="button" role="tab" aria-controls="pills-contact" aria-selected="false">Shakes</button>
+                  </li>
+               </ul>               
+               <div class="tab-content" id="pills-tabContent">
+                  <div class="tab-pane fade show active" id="pills-home" role="tabpanel" aria-labelledby="pills-home-tab">
+                     <p class="second-section-tab-menu-text">Small in portions yet <b>BIG on taste!</b> </p>
+                     <div class="scrolly">
+                        <button class="left"><span class="material-icons"></span></button>
+                        <button class="right"><span class="material-icons"></span></button>
+                        <ul class="carouselPre">
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Appetizer/Masala-Fries.webp" alt="Masala-Fries"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Masala Fries</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Appetizer/Steam-Momos.webp" alt="Steam-Momos"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Steam Momos</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Appetizer/Spring-Roll.webp" alt="Spring-Roll"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Veg Spring Roll</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Appetizer/Chilli-Momos.webp" alt="Chilli-Momos"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Chilli Momos</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                        </ul>
+                     </div>
+                  </div>
+                  <div class="tab-pane fade" id="pills-profile" role="tabpanel" aria-labelledby="pills-profile-tab">
+                     <p class="second-section-tab-menu-text">Enjoy the hot savoury flavours of <b>Desi Chinese!</b> </p>
+                     <div class="scrolly">
+                        <button class="left"><span class="material-icons"></span></button>
+                        <button class="right"><span class="material-icons"></span></button>
+                        <ul class="carouselPre">
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Desi-Chinese/Delhi-Chowmein.webp" alt="Delhi-Chowmein"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Delhi Chowmein</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Desi-Chinese/Manchurian.webp" alt="Manchurian"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Manchurian</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Desi-Chinese/Tandoori-Noodles.webp" alt="Tandoori-Noodles"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Paneer Noodles</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Desi-Chinese/Fried-Rice.webp" alt="Fried-Rice"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Chilli Chicken</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                        </ul>
+                     </div>
+                  </div>
+                  <div class="tab-pane fade" id="pills-contact" role="tabpanel" aria-labelledby="pills-contact-tab">
+                     <p class="second-section-tab-menu-text">Lose your senses in the deliciousness of <b>frothy fruit shakes!</b> </p>
+                     <div class="scrolly">
+                        <button class="left"><span class="material-icons"></span></button>
+                        <button class="right"><span class="material-icons"></span></button>
+                        <ul class="carouselPre">
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images//Home/Shakes/Rose-Milkshake.webp" alt="Rose Milkshake"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Rose</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Shakes/Mango-Milkshake.webp" alt="Mango Milkshake"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Mango</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Shakes/Chocolate-Milkshake.webp" alt="Chocolate-Milkshake"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Chocolate</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                           <li class="itemsC">
+                              <div class="bgImg"><img src="images/Home/Shakes/Vanilla-Milkshake.webp" alt="Vanilla-Milkshake"></div>
+                              <div class="contents">
+                                 <div class="textDet">
+                                    <a class="item-name-price" href="">
+                                       <h3>Vanilla</h3>
+                                       <p></p>
+                                    </a>
+                                 </div>
+                              </div>                              
+                           </li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div> 
+
+         <div class="best-in-town block">
+            <div class="container">
+               <div id="carouselExampleControls" class="carousel slide" data-bs-ride="carousel">
+                  <div class="carousel-inner">
+                     <div class="carousel-item active">
+                        <div class="row carousel-item-inner row-col">
+                           <div class="col best-in-town-img-desktop col-ani col-left-animation">
+                              <img src="images/Best-in-town/NoodleBurger.webp" alt="Noodle Burger">
+                           </div>
+                           <div class="col best-in-town-module col-ani col-right-animation">
+                              <div class="best-in-town-module-wrap home-all-right">
+                                 <p class="best-in-town-module-text">Best in Town</p>
+                                 <p class="cant-visit">You can’t visit <b>Sector17 Restaurant</b> and not try these!</p>
+                                 <h2 class="best-in-town-module-text2">Noodle<br>burger</h2>
+                                 <p class="best-in-town-3">It is not a plateful of <b>noodle</b> or a<br><b>plateful of burger</b>. It is a heavenly<br>jumbo combo of <b>yum Noodles</b> in a</b><br>crunchy burger.</b> </p>
+                                 <button class="carousel-controlnext" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
+                                    <span class="carousel-control-next-arrow" aria-hidden="true"></span>
+                                 </button>
+                              </div>
+                           </div>
+                           <div class="col best-in-town-img-mobile" style="display: none;">
+                              <img src="images/Best-in-town/NoodleBurger.webp" alt="Noodle Burger">
+                           </div>
+                        </div>
+                     </div>
+                     <div class="carousel-item">
+                        <div class="row carousel-item-inner">
+                           <div class="col best-in-town-img-desktop">
+                              <img src="images/Best-in-town/Spring_roll.webp" alt="Springroll">
+                           </div>
+                           <div class="col best-in-town-module">
+                              <div class="best-in-town-module-wrap home-all-right">
+                                 <p class="best-in-town-module-text">Best in Town</p>
+                                 <h2 class="best-in-town-module-text2">Spring<br>roll</h2>
+                                  <p class="best-in-town-3">Enjoy crispy golden rolls filled with fresh veggies tossed along with desi masala and served with Ketchup.</p>
+                                 <button class="carousel-controlnext" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
+                                    <span class="carousel-control-next-arrow" aria-hidden="true"></span>
+                                 </button>
+                              </div>
+                           </div>
+                           <div class="col best-in-town-img-mobile" style="display: none;">
+                              <img src="images/Best-in-town/Spring_roll.webp" alt="Spring_roll">
+                           </div>                        
+                        </div>
+                     </div>
+                     <div class="carousel-item">
+                        <div class="row carousel-item-inner">
+                           <div class="col best-in-town-img-desktop">
+                              <img src="images/Best-in-town/Veg-Masala-Chips.webp" alt="Veg-Masala-Chips">
+                           </div>
+                           <div class="col best-in-town-module">
+                              <div class="best-in-town-module-wrap home-all-right">
+                                 <p class="best-in-town-module-text">Best in Town</p>
+                                 <h2 class="best-in-town-module-text2">Veg Masala<br>Chips</h2>
+                                 <p class="best-in-town-3">Enjoy crispy golden rolls filled with fresh veggies tossed along with desi masala and served with Ketchup.</p>
+                                 <button class="carousel-controlnext" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next">
+                                    <span class="carousel-control-next-arrow" aria-hidden="true"></span>
+                                 </button>
+                              </div>
+                           </div>
+                           <div class="col best-in-town-img-mobile" style="display: none;">
+                              <img src="images/Best-in-town/Veg-Masala-Chips.webp" alt="Veg-Masala-Chips">
+                           </div>
+                        </div>
+                     </div>
+                  </div>             
+               </div>
+            </div>
+         </div>
+
+         <div class="famous-tem block down-animation">
+            <div class="container  ">
+               <h2 class="famous-item-text">Famous item</h2>
+               <p class="famous-serving-desi">Come one, come all! Serving <b>Desi Indian Fast Food</b> fresh & hot at <b>Sector17 Canada!</b></p>
+               <div class="scrolly">
+                  <button class="left"><span class="material-icons"></span></button>
+                  <button class="right"><span class="material-icons"></span></button>
+                  <ul class="carouselPre">
+                     <li class="itemsC" style="display: none;">
+                        <div class="bgImg"><img src="images/Home/Famous-Item/NoodleBurger.webp" alt="Noodle_Burger"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Noodle Burger</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/Home/Famous-Item/ManchurianWrap.webp" alt="Manchurian_Wrap"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Manchurian Wrap</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/Home/Famous-Item/VegManchuruan.webp" alt="Veg_Manchuruan"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Veg Manchuruan</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/Home/Famous-Item/MasalaFries.webp" alt="Masala_Fries"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Masala Fries</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>                     
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/Home/Famous-Item/VegGrilledSandwich.webp" alt="Veg Grilled Sandwich"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Veg Grilled Sandwich</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/Home/Famous-Item/ChilliMomos.webp" alt="Chilli_Momos"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Chilli Momos</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                  </ul>
+               </div>
+               <p class="famous-item-button"><a href="menu">See all serving locations</a></p>
+            </div>   
+         </div>
+         <div class="about-us-section block down-animation">
+            <div class="container">
+               <div class="row row-col">
+                  <div class="col col-left col-ani col-left-animation ">
+                     <div class="home-all-left">
+                        <h2 class="about-us-text">About Us</h2>
+                        <p class="abou-us-paragraph">
+                           What began as a single fast food truck in<br>Calgary has grown into a <b>full-fledged Desi<br>Indo-Canadian fast food chain.</b> Sector17<br>takes its name from a well-known market<br>in <b>Chandigarh, India.</b> 
+                           <br>
+                           <br>
+                           We began in 2016 among friends and have<br>come a long way since then. From<br><b>Sector17</b> signature chicken burgers to<br>chilli chicken momos, we got everything<br>made in pure desi style to fulfil your<br>hunger for the <b>Indian street food.</b>
+
+                        </p>
+                        <a href="about-Us" class="know-more-aboutus">Know more</a><br>
+                     </div>
+                  </div>
+                  <div class="col about-us-img col-ani1 col-right-animation">
+                     <img src="images/AbouUsHomePage.webp">
+                  </div>
+               </div>  
+            </div> 
+         </div>  
+
+         <div class="just-arrived" style="display: none;">
+            <div class="container">
+               <h2 class="famous-item-text">Just Arrived</h2>
+               <div class="scrolly">
+                  <button class="left"><span class="material-icons"></span></button>
+                  <button class="right"><span class="material-icons"></span></button>
+                  <ul class="carouselPre">
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/APPETIZER/APPETIZER1.webp" alt="APPETIZER1"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Masala Fries</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/APPETIZER/APPETIZER2.webp" alt="APPETIZER2"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Steam Momos</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/APPETIZER/APPETIZER3.webp" alt="APPETIZER3"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Veg Spring Roll</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/APPETIZER/APPETIZER4.webp" alt="APPETIZER4"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Chilli Momos</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                     <li class="itemsC">
+                        <div class="bgImg"><img src="images/APPETIZER/APPETIZER1.webp" alt="image"></div>
+                        <div class="contents">
+                           <div class="textDet">
+                              <a class="item-name-price" href="">
+                                 <h3>Masala Fries</h3>
+                                 <p></p>
+                              </a>
+                           </div>
+                        </div>                              
+                     </li>
+                  </ul>
+               </div>
+               <p class="just-arrived-button"><a href="menu">Avail 10% off</a></p>       
+            </div>     
+         </div>
+
+         <div class="faqs block down-animation">
+            <div class="container">
+               <h2 class="faqs-heading">FAQs</h2>
+               <section class="faq">
+                  <h2 class="faq_question to-bottom">Why is the name sector17</h2>
+                  <div class="faq_answer">Sector 17 restaurant is an Indo-Canadian fast-food company founded in 2016 and our brand name arose from the famous 17 Sector in Chandigarh, India. Sector 17 serves some of its favorite food like the Noodle burger, Delhi Chowmein, grilled sandwich, etc.</div>
+               </section>
+               <section class="faq">
+                  <h2 class="faq_question to-bottom">What so special about sector17</h2>
+                  <div class="faq_answer">Sector17 offers the same taste and way of life as these are in Chandigarh, India. We maintained that food quality customer satisfaction over the year. Some of our dishes like noodle burgers and Delhi Chowmein are the best in town and people come from far to have that taste in Canada.</div>
+               </section>
+               <section class="faq">
+                  <h2 class="faq_question to-bottom">Hygiene and food safety levels (covid)</h2>
+                  <div class="faq_answer">Our vegetables are fresh. We make sure that our staff is healthy and not showing any symptoms of Covid. We maintain proper cleanliness and sanitize our place regularly.</div>
+               </section>
+               <section class="faq">
+                  <h2 class="faq_question to-bottom">What is so special about your noodle burger?</h2>
+                  <div class="faq_answer">Yes our best in town, what makes it so special, sorry first you have to try it then you can ask this question again :).</div>
+               </section>
+               <section class="faq">
+                  <h2 class="faq_question to-bottom">At which all locations does Sector17 have its branches?</h2>
+                  <div class="faq_answer">Sector17 has its branches at <a href="https://www.google.co.in/maps/dir//Sector+17/data=!4m6!4m5!1m1!4e2!1m2!1m1!1s0x882b157baf0eccab:0x7f3f6ef3aae9c895?sa=X&ved=2ahUKEwir6rKN4M_xAhU4zDgGHd7VDNsQ9RcwJ3oECG4QBA">Sector17 CollegePlaza</a>, <a href="https://www.google.co.in/maps/dir//Sector+17/data=!4m6!4m5!1m1!4e2!1m2!1m1!1s0x882b3dafc6410f77:0x920404213018cef?sa=X&ved=2ahUKEwjo7IGW4M_xAhWlxjgGHZciBaQQ9RcwJ3oECGYQBA">Sector17 Ebenezer</a>, <a href="https://www.google.co.in/maps/dir/28.6115638,76.9758268/Sector+17/@2.3587818,74.3284902,3z/data=!3m1!4b1!4m9!4m8!1m1!4e1!1m5!1m1!1s0x537163af64f69455:0xff29ab868f5e05f9!2m2!1d-113.9746026!2d51.107316">Sector17 Calgary</a>, <a href="https://www.google.co.in/maps/dir//Sector+17/data=!4m6!4m5!1m1!4e2!1m2!1m1!1s0x882b8bbb25a9fcd1:0xefb7562b03733e9e?sa=X&ved=2ahUKEwjp-72c4M_xAhXxxTgGHY72DXMQ9RcwJ3oECGUQBA">Sector17 Kitchener</a>, <a href="https://www.google.co.in/maps/dir//Sector+17/data=!4m6!4m5!1m1!4e2!1m2!1m1!1s0x882b3e4788b9d0d1:0x5068c33db4b7fe85?sa=X&ved=2ahUKEwikqvSE4M_xAhW8xDgGHXXbDCQQ9RcwJ3oECGkQBA">Sector17 Clarence</a>.</div>
+               </section>
+            </div>
+         </div>  
+
+         <div class="offer-module block down-animation">
+            <div class="container">
+               <div class="row offer-module-wrapper">
+                  <div class="col avail-10">
+                     <h2 class="avail-10-text">
+                            Get a chance to <br>win a delectable <br>gift voucher by Sector17
+                     </h2>
+                     <p class="applicable-text">applicable across all Sector17 stores</p>
+                  </div>
+                  <div class="col" id="home-page-offer">
+                     <div class="wrapper">
+                        <div class="leform-inline" data-id="2"></div>
+                     </div>
+                  </div>
+               </div>
+            </div>  
+         </div>
+   </div>
+
+<?php include 'includes/footer.php';?> 
