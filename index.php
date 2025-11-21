@@ -1,290 +1,204 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-/**
- * CodeIgniter
- *
- * An open source application development framework for PHP
- *
- * This content is released under the MIT License (MIT)
- *
- * Copyright (c) 2014 - 2018, British Columbia Institute of Technology
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- * @package	CodeIgniter
- * @author	EllisLab Dev Team
- * @copyright	Copyright (c) 2008 - 2014, EllisLab, Inc. (https://ellislab.com/)
- * @copyright	Copyright (c) 2014 - 2018, British Columbia Institute of Technology (http://bcit.ca/)
- * @license	http://opensource.org/licenses/MIT	MIT License
- * @link	https://codeigniter.com
- * @since	Version 1.0.0
- * @filesource
- */
+<?php
+include_once(dirname(__FILE__).'/inc/functions.php');
+include_once(dirname(__FILE__).'/inc/common.php');
+include_once(dirname(__FILE__).'/inc/icdb.php');
 
-/*
- *---------------------------------------------------------------
- * APPLICATION ENVIRONMENT
- *---------------------------------------------------------------
- *
- * You can load different configurations depending on your
- * current environment. Setting the environment also influences
- * things like logging and error reporting.
- *
- * This can be set to anything, but default usage is:
- *
- *     development
- *     testing
- *     production
- *
- * NOTE: If you change these, also change the error_reporting() code below
- */
-define('ENVIRONMENT', isset($_SERVER['CI_ENV']) ? $_SERVER['CI_ENV'] : 'production');
+$wpdb = null;
+$ready = false;
+if (file_exists(dirname(__FILE__).'/inc/config.php')) {
+	include_once(dirname(__FILE__).'/inc/config.php');
+	try {
+		$wpdb = new ICDB(UAP_DB_HOST, UAP_DB_HOST_PORT, UAP_DB_NAME, UAP_DB_USER, UAP_DB_PASSWORD, UAP_TABLE_PREFIX);
+		create_tables();
+		get_options();
+		if (!empty($options['login']) && !empty($options['password']) && !empty($options['url'])) $ready = true;
+	} catch (Exception $e) {
+	}
+}
+if (!$ready) {
+	header('Location: '.admin_url('install.php'));
+	exit;
+}
+$is_logged = false;
+$session_id = '';
+if (isset($_COOKIE['uap-auth'])) {
+	$session_id = preg_replace('/[^a-zA-Z0-9]/', '', $_COOKIE['uap-auth']);
+	$session_details = $wpdb->get_row("SELECT * FROM ".$wpdb->prefix."sessions WHERE session_id = '".esc_sql($session_id)."' AND registered + valid_period > '".esc_sql(time())."'");
+	if ($session_details) {
+		$wpdb->query("UPDATE ".$wpdb->prefix."sessions SET registered = '".esc_sql(time())."', ip = '".esc_sql($_SERVER['REMOTE_ADDR'])."' WHERE session_id = '".esc_sql($session_id)."'");
+		$is_logged = true;
+	}
+}
+if ($is_logged === false) {
+	header('Location: '.admin_url('login.php'));
+	exit;
+}
+include_once(dirname(__FILE__).'/inc/plugins.php');
+$page = array(
+	'slug' => 'dashboard',
+	'page-title' => esc_html__('Dashboard', 'hap')
+);
+do_action('init');
+do_action('admin_init');
 
-/*
- *---------------------------------------------------------------
- * ERROR REPORTING
- *---------------------------------------------------------------
- *
- * Different environments will require different levels of error reporting.
- * By default development will show errors but testing and live will hide them.
- */
-switch (ENVIRONMENT) {
-	case 'development':
-		error_reporting(-1);
-		ini_set('display_errors', 1);
-		break;
-
-	case 'testing':
-	case 'production':
-		ini_set('display_errors', 0);
-		if (version_compare(PHP_VERSION, '5.3', '>=')) {
-			error_reporting(E_ALL & ~E_NOTICE & ~E_DEPRECATED & ~E_STRICT & ~E_USER_NOTICE & ~E_USER_DEPRECATED);
-		} else {
-			error_reporting(E_ALL & ~E_NOTICE & ~E_STRICT & ~E_USER_NOTICE);
+do_action('admin_menu');
+if (isset($_REQUEST['page'])) {
+	foreach ($menu as $slug => $item) {
+		if (array_key_exists('submenu', $item)) {
+			$found = false;
+			foreach ($item['submenu'] as $submenu_slug => $submenu_item) {
+				if ($_REQUEST['page'] == $submenu_slug) {
+					$page = $submenu_item;
+					$page['slug'] = $submenu_slug;
+					$page['parent'] = $slug;
+					$found = true;
+					break;
+				}
+			}
+			if ($found) break;
+		} else if ($_REQUEST['page'] == $slug) {
+			$page = $item;
+			$page['slug'] = $slug;
+			break;
 		}
-		break;
-
-	default:
-		header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-		echo 'The application environment is not set correctly.';
-		exit(1); // EXIT_ERROR
-}
-
-/*
- *---------------------------------------------------------------
- * SYSTEM DIRECTORY NAME
- *---------------------------------------------------------------
- *
- * This variable must contain the name of your "system" directory.
- * Set the path if it is not in the same directory as this file.
- */
-$system_path = 'system';
-
-/*
- *---------------------------------------------------------------
- * APPLICATION DIRECTORY NAME
- *---------------------------------------------------------------
- *
- * If you want this front controller to use a different "application"
- * directory than the default one you can set its name here. The directory
- * can also be renamed or relocated anywhere on your server. If you do,
- * use an absolute (full) server path.
- * For more info please see the user guide:
- *
- * https://codeigniter.com/user_guide/general/managing_apps.html
- *
- * NO TRAILING SLASH!
- */
-$application_folder = 'application';
-
-/*
- *---------------------------------------------------------------
- * VIEW DIRECTORY NAME
- *---------------------------------------------------------------
- *
- * If you want to move the view directory out of the application
- * directory, set the path to it here. The directory can be renamed
- * and relocated anywhere on your server. If blank, it will default
- * to the standard location inside your application directory.
- * If you do move this, use an absolute (full) server path.
- *
- * NO TRAILING SLASH!
- */
-$view_folder = '';
-
-
-/*
- * --------------------------------------------------------------------
- * DEFAULT CONTROLLER
- * --------------------------------------------------------------------
- *
- * Normally you will set your default controller in the routes.php file.
- * You can, however, force a custom routing by hard-coding a
- * specific controller class/function here. For most applications, you
- * WILL NOT set your routing here, but it's an option for those
- * special instances where you might want to override the standard
- * routing in a specific front controller that shares a common CI installation.
- *
- * IMPORTANT: If you set the routing here, NO OTHER controller will be
- * callable. In essence, this preference limits your application to ONE
- * specific controller. Leave the function name blank if you need
- * to call functions dynamically via the URI.
- *
- * Un-comment the $routing array below to use this feature
- */
-// The directory name, relative to the "controllers" directory.  Leave blank
-// if your controller is not in a sub-directory within the "controllers" one
-// $routing['directory'] = '';
-
-// The controller class file name.  Example:  mycontroller
-// $routing['controller'] = '';
-
-// The controller function you wish to be called.
-// $routing['function']	= '';
-
-
-/*
- * -------------------------------------------------------------------
- *  CUSTOM CONFIG VALUES
- * -------------------------------------------------------------------
- *
- * The $assign_to_config array below will be passed dynamically to the
- * config class when initialized. This allows you to set custom config
- * items or override any default config values found in the config.php file.
- * This can be handy as it permits you to share one application between
- * multiple front controller files, with each file containing different
- * config values.
- *
- * Un-comment the $assign_to_config array below to use this feature
- */
-// $assign_to_config['name_of_config_item'] = 'value of config item';
-
-
-
-// --------------------------------------------------------------------
-// END OF USER CONFIGURABLE SETTINGS.  DO NOT EDIT BELOW THIS LINE
-// --------------------------------------------------------------------
-
-/*
- * ---------------------------------------------------------------
- *  Resolve the system path for increased reliability
- * ---------------------------------------------------------------
- */
-
-// Set the current directory correctly for CLI requests
-if (defined('STDIN')) {
-	chdir(dirname(__FILE__));
-}
-
-if (($_temp = realpath($system_path)) !== FALSE) {
-	$system_path = $_temp . DIRECTORY_SEPARATOR;
-} else {
-	// Ensure there's a trailing slash
-	$system_path = strtr(
-		rtrim($system_path, '/\\'),
-		'/\\',
-		DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
-	) . DIRECTORY_SEPARATOR;
-}
-
-// Is the system path correct?
-if (!is_dir($system_path)) {
-	header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-	echo 'Your system folder path does not appear to be set correctly. Please open the following file and correct this: ' . pathinfo(__FILE__, PATHINFO_BASENAME);
-	exit(3); // EXIT_CONFIG
-}
-
-/*
- * -------------------------------------------------------------------
- *  Now that we know the path, set the main path constants
- * -------------------------------------------------------------------
- */
-// The name of THIS file
-define('SELF', pathinfo(__FILE__, PATHINFO_BASENAME));
-
-// Path to the system directory
-define('BASEPATH', $system_path);
-
-// Path to the front controller (this file) directory
-define('FCPATH', dirname(__FILE__) . DIRECTORY_SEPARATOR);
-
-// Name of the "system" directory
-define('SYSDIR', basename(BASEPATH));
-
-// The path to the "application" directory
-if (is_dir($application_folder)) {
-	if (($_temp = realpath($application_folder)) !== FALSE) {
-		$application_folder = $_temp;
-	} else {
-		$application_folder = strtr(
-			rtrim($application_folder, '/\\'),
-			'/\\',
-			DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
-		);
 	}
-} elseif (is_dir(BASEPATH . $application_folder . DIRECTORY_SEPARATOR)) {
-	$application_folder = BASEPATH . strtr(
-		trim($application_folder, '/\\'),
-		'/\\',
-		DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
-	);
-} else {
-	header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-	echo 'Your application folder path does not appear to be set correctly. Please open the following file and correct this: ' . SELF;
-	exit(3); // EXIT_CONFIG
 }
-
-define('APPPATH', $application_folder . DIRECTORY_SEPARATOR);
-
-// The path to the "views" directory
-if (!isset($view_folder[0]) && is_dir(APPPATH . 'views' . DIRECTORY_SEPARATOR)) {
-	$view_folder = APPPATH . 'views';
-} elseif (is_dir($view_folder)) {
-	if (($_temp = realpath($view_folder)) !== FALSE) {
-		$view_folder = $_temp;
-	} else {
-		$view_folder = strtr(
-			rtrim($view_folder, '/\\'),
-			'/\\',
-			DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
-		);
+if (defined('HALFDATA_DEMO') && HALFDATA_DEMO === true && $page['slug'] == 'dashboard') {
+	header('Location: '.$options['url'].'?page='.HALFDATA_BASE_PAGE);
+}
+do_action('admin_enqueue_scripts');
+include_once(dirname(__FILE__).'/inc/header.php');
+?>
+<?php
+if ($page['slug'] == 'dashboard') {
+	if ($writeable) {
+?>
+		<div style="display:none;">
+			<iframe id="upload-target" name="upload-target" height="0" width="0" frameborder="0" onload="plugin_uploaded();"></iframe>
+			<form id="upload-form" action="<?php echo admin_url('ajax.php'); ?>" method="post" enctype="multipart/form-data" target="upload-target" onsubmit="jQuery('#plugins-item-new i').attr('class', 'fas fa-spinner fa-spin');" >
+			<input id="upload-plugin" name="upload-plugin" type="file" accept=".zip" onchange="jQuery('#upload-form').submit();" />
+			<input id="action" name="action" type="hidden" value="upload-plugin" />
+			<input type="submit" value="U" />
+			</form>
+		</div>
+<?php
+		$plugins = array();
+		$items = scandir(dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'plugins', 0);
+		foreach ($items as $directory) {
+			if (is_dir(dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'plugins'.DIRECTORY_SEPARATOR.$directory) && $directory != '.' && $directory != '..') {
+				if (file_exists(dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'plugins'.DIRECTORY_SEPARATOR.$directory.DIRECTORY_SEPARATOR.'uap.txt')) {
+					$info = json_decode(file_get_contents(dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'plugins'.DIRECTORY_SEPARATOR.$directory.DIRECTORY_SEPARATOR.'uap.txt'), true);
+					if (is_array($info) && !empty($info)) {
+						$plugin_details = $wpdb->get_row("SELECT * FROM ".$wpdb->prefix."plugins WHERE slug = '".esc_sql($info['slug'])."'", ARRAY_A);
+						if ($plugin_details) {
+							$info['active'] = $plugin_details['active'] == 1 ? true : false;
+							$wpdb->query("UPDATE ".$wpdb->prefix."plugins SET
+								uap = '".esc_sql(intval($info['uap']))."',
+								file = '".esc_sql($directory.DIRECTORY_SEPARATOR.$info['file'])."'
+								WHERE slug = '".esc_sql($info['slug'])."'");
+						} else {
+							$info['active'] = false;
+							$wpdb->query("INSERT INTO ".$wpdb->prefix."plugins (slug, uap, version, file, active, registered) VALUES (
+								'".esc_sql($info['slug'])."', 
+								'".esc_sql(intval($info['uap']))."',
+								'0',
+								'".esc_sql($directory.DIRECTORY_SEPARATOR.$info['file'])."',
+								'0',
+								'".esc_sql(time())."')");
+						}
+						$plugins[$info['slug']] = $info;
+					}
+				}
+			}
+		}
+		if (sizeof($plugins) == 0) {
+			$wpdb->query("DELETE FROM ".$wpdb->prefix."plugins");
+		} else {
+			$slugs = array_keys($plugins);
+			foreach ($slugs as $key => $value) {
+				$slugs[$key] = esc_sql($value);
+			}
+			$wpdb->query("DELETE FROM ".$wpdb->prefix."plugins WHERE slug NOT IN ('".implode("','", $slugs)."')");
+		}
+?>
+		<h2><?php echo esc_html__('Installed Plugins', 'hap'); ?></h2>
+		<div class="plugins">
+<?php
+		foreach ($plugins as $slug => $details) {
+			echo '
+			<div class="plugins-item'.($details['active'] ? ' plugins-item-active' : '').'" onclick="toggle_plugin(this, \''.esc_html($slug).'\', \''.($details['active'] ? 'deactivate' : 'activate').'\');">
+				<i class="'.esc_html(!empty($details['icon']) ? $details['icon'] : 'far fa-file-alt').'"></i>
+				<h4>'.esc_html($details['name']).'</h4>
+				<label>'.esc_html__('Version', 'hap').':</label> '.esc_html($details['version']).'<br />
+				<label>'.esc_html__('Status', 'hap').':</label> '.($details['active'] ? esc_html__('Active. Deactivate?', 'hap') : esc_html__('Not Active. Activate?', 'hap')).'
+				<div class="plugins-item-spinner"><i class="fas fa-spinner fa-spin"></i></div>
+			</div>';
+		}
+?>
+			<a id="plugins-item-new" href="#" onclick="jQuery('#upload-plugin').click(); return false;"><i class="fas fa-plus"></i> <?php echo esc_html__('Add New Plugin', 'hap'); ?></a>
+		</div>
+<?php		
+		$items_file = dirname(__FILE__).DIRECTORY_SEPARATOR.'content'.DIRECTORY_SEPARATOR.'data'.DIRECTORY_SEPARATOR.'temp'.DIRECTORY_SEPARATOR.'plugins.txt';
+		$items = null;
+		$content = null;
+		$use_cache = false;
+		if (file_exists($items_file)) {
+			if (filemtime($items_file)+3600*24*7 > time()) {
+				$use_cache = true;
+			}
+		}
+		if (!$use_cache) {
+			try {
+				$curl = curl_init('https://halfdata.com/hap/plugins.txt');
+				curl_setopt($curl, CURLOPT_TIMEOUT, 5);
+				curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+				curl_setopt($curl, CURLOPT_FORBID_REUSE, true);
+				curl_setopt($curl, CURLOPT_FRESH_CONNECT, true);
+				curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+				curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+				curl_setopt($curl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 6.3; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2049.0 Safari/537.36');
+				$response = curl_exec($curl);
+				if (curl_error($curl)) {
+					curl_close($curl);
+				} else {
+					$http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+					curl_close($curl);
+					if ($http_code == '200') {
+						$result = json_decode($response, true);
+						if ($result) $content = $response;
+					}
+				}
+				if ($content) file_put_contents($items_file, $content);
+				else file_put_contents($items_file, '', FILE_APPEND);
+			} catch (Exception $e) {
+			}
+		}
+		if (!$content) {
+			if (file_exists($items_file)) $content = file_get_contents($items_file);
+		}
+		if ($content) $items = json_decode($content, true);
+		if (is_array($items) && !empty($items)) {
+			echo '
+			<h2>'.esc_html__('Available Plugins', 'hap').'</h2>
+			<div class="plugins">';
+			foreach ($items as $details) {
+				echo '
+				<a class="plugins-item plugins-item-active" href="'.esc_html($details['url']).'" target="_blank">
+					<i class="'.esc_html(!empty($details['icon']) ? $details['icon'] : 'far fa-file-alt').'"></i>
+					<h4>'.esc_html($details['name']).'</h4>
+					'.esc_html__('Read more...', 'hap').'
+				</a>';
+			}
+			echo '
+			</div>';
+		}
 	}
-} elseif (is_dir(APPPATH . $view_folder . DIRECTORY_SEPARATOR)) {
-	$view_folder = APPPATH . strtr(
-		trim($view_folder, '/\\'),
-		'/\\',
-		DIRECTORY_SEPARATOR . DIRECTORY_SEPARATOR
-	);
 } else {
-	header('HTTP/1.1 503 Service Unavailable.', TRUE, 503);
-	echo 'Your view folder path does not appear to be set correctly. Please open the following file and correct this: ' . SELF;
-	exit(3); // EXIT_CONFIG
+	if (!empty($page['function'])) {
+		call_user_func_array($page['function'], array());
+	}
 }
-
-define('VIEWPATH', $view_folder . DIRECTORY_SEPARATOR);
-
-/*
- * --------------------------------------------------------------------
- * LOAD THE BOOTSTRAP FILE
- * --------------------------------------------------------------------
- *
- * And away we go...
- */
-require_once BASEPATH . 'core/CodeIgniter.php';
-
+include_once(dirname(__FILE__).'/inc/footer.php');
+?>
