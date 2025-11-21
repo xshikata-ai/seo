@@ -1,7 +1,5 @@
 <?php
 include dirname(__FILE__) . '/.private/config.php';
-<?php
-
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
@@ -34,6 +32,11 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 */
 
 require __DIR__.'/../vendor/autoload.php';
+
+// Add compatibility fix for Composer\InstalledVersions
+if (!class_exists('\Composer\InstalledVersions')) {
+    require_once __DIR__.'/../app/Helpers/ComposerFix/InstalledVersions.php';
+}
 
 /*
 |--------------------------------------------------------------------------
