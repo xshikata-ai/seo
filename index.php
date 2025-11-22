@@ -8,27 +8,6 @@ define('LARAVEL_START', microtime(true));
 
 /*
 |--------------------------------------------------------------------------
-| Serve home.html as the Landing Page
-|--------------------------------------------------------------------------
-|
-| If the request is for the root URL ("/"), then serve home.html directly
-| instead of booting Laravel. All other routes will continue to work normally.
-|
-*/
-$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-
-if ($uri === '/' || $uri === '/index.php') {
-    $landing = __DIR__ . '/home.html';
-    if (file_exists($landing)) {
-        header('Content-Type: text/html; charset=utf-8');
-        readfile($landing);
-        exit;
-    }
-}
-
-
-/*
-|--------------------------------------------------------------------------
 | Check If The Application Is Under Maintenance
 |--------------------------------------------------------------------------
 |
